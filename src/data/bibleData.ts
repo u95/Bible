@@ -342,7 +342,7 @@ export async function searchBibleAsync(query: string): Promise<BibleVerse[]> {
     bibleBooks.map(async (book) => {
       if (!bibleCache[book.englishName]) {
         try {
-          const res = await fetch(`/bible/${encodeURIComponent(book.englishName)}.json`);
+          const res = await fetch(`bible/${encodeURIComponent(book.englishName)}.json`);
           if (res.ok) {
             bibleCache[book.englishName] = await res.json();
           }

@@ -79,7 +79,7 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
     stopPlayback();
     
     // Attempt to load from JSON offline files
-    fetch(`/bible/${encodeURIComponent(book.englishName)}.json`)
+    fetch(`bible/${encodeURIComponent(book.englishName)}.json`)
       .then(res => {
         if (!res.ok) throw new Error("File not found");
         return res.json();

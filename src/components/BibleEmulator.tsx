@@ -182,7 +182,7 @@ export default function BibleEmulator() {
       setIsLiveConnected(false);
 
       // Fetch the full book JSON from our offline/local folder
-      fetch(`/bible/${encodeURIComponent(selectedBook.englishName)}.json`)
+      fetch(`bible/${encodeURIComponent(selectedBook.englishName)}.json`)
         .then(res => {
           if (!res.ok) {
             throw new Error(`அதிகாரத்தை ஏற்றுவதில் சிக்கல் (Status: ${res.status})`);
