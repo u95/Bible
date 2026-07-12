@@ -1,0 +1,6 @@
+{
+  "name": "UMN Tamil Bible",
+  "description": "An offline Tamil Bible application with elegant Material 3 design, complete with reading modes, search, bookmarks, personal notes, and high-fidelity Flutter source code export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
