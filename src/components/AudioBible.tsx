@@ -33,6 +33,9 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
   const [volume, setVolume] = useState<number>(1.0);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isSpeechSupported, setIsSpeechSupported] = useState<boolean>(true);
+  const [forceSimulation, setForceSimulation] = useState<boolean>(false);
+
+  const isUsingSimulation = !isSpeechSupported || forceSimulation;
 
   // Sleep Timer states
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null); // null = off, or 5, 15, 30, 45, 60
@@ -47,6 +50,7 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
   // Speech synthesis reference
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const mockTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Animated visualizer heights
   const [visualizerHeights, setVisualizerHeights] = useState<number[]>(Array(15).fill(4));
@@ -73,6 +77,59 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
       if (sleepTimerRef.current) clearInterval(sleepTimerRef.current);
     };
   }, [selectedBook, selectedChapter]);
+
+  // Simulation / Mock Playback Effect for devices where Speech Synthesis is not supported or simulation is forced
+  useEffect(() => {
+    if (mockTimerRef.current) {
+      clearTimeout(mockTimerRef.current);
+      mockTimerRef.current = null;
+    }
+
+    if (isPlaying && isUsingSimulation) {
+      const activeVerse = verses[currentVerseIndex];
+      if (activeVerse) {
+        // Calculate dynamic delay based on verse length
+        const wordCount = activeVerse.text.split(/\s+/).length;
+        // Base delay is 2500ms + 350ms per word
+        const calculatedDelay = (2500 + wordCount * 350) / playbackRate;
+        // Keep it within comfortable reading bounds
+        const delay = Math.max(3000, Math.min(calculatedDelay, 15000));
+
+        // Scroll active verse into view
+        const activeElement = document.getElementById(`audio-verse-${currentVerseIndex}`);
+        if (activeElement && verseListContainerRef.current) {
+          verseListContainerRef.current.scrollTo({
+            top: activeElement.offsetTop - 120,
+            behavior: 'smooth'
+          });
+        }
+
+        startVisualizerAnimation();
+
+        mockTimerRef.current = setTimeout(() => {
+          const nextIndex = currentVerseIndex + 1;
+          if (nextIndex < verses.length) {
+            setCurrentVerseIndex(nextIndex);
+          } else {
+            // Completed the chapter!
+            if (selectedChapter < selectedBook.chapters) {
+              setSelectedChapter(prev => prev + 1);
+              setCurrentVerseIndex(0);
+            } else {
+              stopPlayback();
+            }
+          }
+        }, delay);
+      }
+    }
+
+    return () => {
+      if (mockTimerRef.current) {
+        clearTimeout(mockTimerRef.current);
+        mockTimerRef.current = null;
+      }
+    };
+  }, [isPlaying, currentVerseIndex, verses, isUsingSimulation, playbackRate, selectedChapter]);
 
   // Load verses from local assets or fallback generator
   const loadChapterVerses = (book: BibleBook, chapterNum: number) => {
@@ -130,6 +187,10 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
 
   // Audio Playback Controllers
   const playActiveVerse = (index: number) => {
+    if (isUsingSimulation) {
+      return;
+    }
+
     if (!synthRef.current || verses.length === 0 || index >= verses.length) {
       setIsPlaying(false);
       stopVisualizerAnimation();
@@ -205,6 +266,13 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
   };
 
   const handlePlayPause = () => {
+    if (isUsingSimulation) {
+      setIsPlaying(!isPlaying);
+      if (!isPlaying) startVisualizerAnimation();
+      else stopVisualizerAnimation();
+      return;
+    }
+
     if (!synthRef.current) {
       // Mock playback if speech synthesis not available
       setIsPlaying(!isPlaying);
@@ -233,6 +301,10 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
     stopVisualizerAnimation();
     if (synthRef.current) {
       synthRef.current.cancel();
+    }
+    if (mockTimerRef.current) {
+      clearTimeout(mockTimerRef.current);
+      mockTimerRef.current = null;
     }
   };
 
@@ -436,11 +508,28 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
           </div>
         </div>
 
-        {/* NOTIFICATION BOX IF NOT SUPPORTED */}
-        {!isSpeechSupported && (
-          <div className="bg-amber-500/10 border-b border-amber-500/20 p-2.5 px-4 text-amber-500 text-[10px] font-bold flex items-center gap-1.5">
-            <AlertCircle size={12} className="shrink-0" />
-            <span>உங்கள் உலாவி உரை வாசிப்பை ஆதரிக்கவில்லை. ஆடியோ சிமுலேட்டர் காட்டப்படுகிறது.</span>
+        {/* NOTIFICATION BOX IF NOT SUPPORTED OR SIMULATING */}
+        {isUsingSimulation && (
+          <div className="bg-amber-500/10 dark:bg-amber-500/5 border-b border-amber-500/20 p-2.5 px-4 text-amber-500 dark:text-amber-400 text-[10px] font-bold flex items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1.5">
+              <AlertCircle size={12} className="shrink-0 animate-pulse" />
+              <span>
+                {!isSpeechSupported 
+                  ? "தானியங்கி வாசிப்பு முறை: உங்கள் உலாவி உரை வாசிப்பை ஆதரிக்கவில்லை. வசனங்கள் தானாகவே முன்னிலைப்படுத்தப்பட்டு நகரும்."
+                  : "தானியங்கி வாசிப்பு முறை (வசனங்கள் தானாகவே நகரும்)."}
+              </span>
+            </div>
+            {isSpeechSupported && (
+              <button 
+                onClick={() => {
+                  stopPlayback();
+                  setForceSimulation(false);
+                }}
+                className="bg-amber-500 text-white dark:bg-amber-600 px-2 py-0.5 rounded text-[9px] font-bold cursor-pointer"
+              >
+                வழக்கமான ஆடியோவிற்கு மாறவும்
+              </button>
+            )}
           </div>
         )}
 
@@ -568,6 +657,22 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
                           ))}
                         </div>
                       </div>
+
+                      {isSpeechSupported && (
+                        <div className="border-t border-slate-100 dark:border-zinc-800/80 pt-1.5">
+                          <button
+                            onClick={() => {
+                              stopPlayback();
+                              setForceSimulation(!forceSimulation);
+                              setShowSpeedSelector(false);
+                            }}
+                            className="w-full py-1.5 px-2 text-[9px] font-black rounded-lg cursor-pointer flex items-center justify-between bg-blue-50/70 dark:bg-zinc-800/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100/80"
+                          >
+                            <span>{forceSimulation ? "வழக்கமான ஆடியோ" : "தானியங்கி முறை (Sim)"}</span>
+                            <Sparkles size={10} className="text-blue-500 shrink-0" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
