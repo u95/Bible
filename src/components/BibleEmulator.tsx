@@ -38,10 +38,12 @@ import {
   Music,
   Book,
   X,
-  CheckCircle2
+  CheckCircle2,
+  Image as ImageIcon
 } from 'lucide-react';
 import BibleQuiz from './BibleQuiz';
 import AudioBible from './AudioBible';
+import VersePoster from './VersePoster';
 import umnLogo from '../assets/images/umn_logo_1783706606382.jpg';
 
 export default function BibleEmulator() {
@@ -74,6 +76,7 @@ export default function BibleEmulator() {
 
   // Interactive popup modals or dialogs
   const [selectedVerseForAction, setSelectedVerseForAction] = useState<BibleVerse | null>(null);
+  const [selectedVerseForPoster, setSelectedVerseForPoster] = useState<BibleVerse | null>(null);
   const [isNoteModalOpen, setIsNoteModalOpen] = useState<boolean>(false);
   const [noteInput, setNoteInput] = useState<string>("");
   const [copiedText, setCopiedText] = useState<boolean>(false);
@@ -627,6 +630,22 @@ export default function BibleEmulator() {
                     <div className="text-[10px] text-slate-500">வசன வாசிப்பு</div>
                   </div>
                 </button>
+
+                <button 
+                  onClick={() => {
+                    setSelectedVerseForPoster(dailyVerse ? dailyVerse : null);
+                    navigateTo("poster");
+                  }}
+                  className={`p-4 rounded-2xl flex flex-col items-start gap-2 border transition-all hover:scale-102 cursor-pointer ${isDarkMode ? 'bg-zinc-900 border-zinc-800 hover:border-zinc-700' : 'bg-white border-slate-200 hover:border-slate-300'} shadow-xs`}
+                >
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                    <ImageIcon size={18} />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold">ஸ்டேட்டஸ் மேக்கர்</div>
+                    <div className="text-[10px] text-slate-500">வசன அட்டை உருவாக்கம்</div>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -952,16 +971,16 @@ export default function BibleEmulator() {
                 </div>
 
                 {/* Action buttons panel */}
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-5 gap-1">
                   <button
                     onClick={() => {
                       toggleBookmark(selectedVerseForAction);
                       setSelectedVerseForAction(null);
                     }}
-                    className={`p-2.5 rounded-xl flex flex-col items-center gap-1 text-[10px] font-bold border cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-800 ${isBookmarked(selectedVerseForAction) ? 'text-red-500 border-red-200 bg-red-50/20' : 'text-slate-600 dark:text-zinc-300'}`}
+                    className={`py-2 px-1 rounded-xl flex flex-col items-center gap-1 text-[9px] font-bold border cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-800 ${isBookmarked(selectedVerseForAction) ? 'text-red-500 border-red-200 bg-red-50/20' : 'text-slate-600 dark:text-zinc-300'}`}
                   >
-                    <Bookmark size={15} className={isBookmarked(selectedVerseForAction) ? "fill-red-500" : ""} />
-                    <span>அடையாளம்</span>
+                    <Bookmark size={14} className={isBookmarked(selectedVerseForAction) ? "fill-red-500" : ""} />
+                    <span className="truncate">அடையாளம்</span>
                   </button>
 
                   <button
@@ -969,10 +988,10 @@ export default function BibleEmulator() {
                       copyToClipboard(`"${selectedVerseForAction.text}"\n— ${selectedVerseForAction.bookName} ${selectedVerseForAction.chapter}:${selectedVerseForAction.verse}`);
                       setSelectedVerseForAction(null);
                     }}
-                    className="p-2.5 rounded-xl flex flex-col items-center gap-1 text-[10px] font-bold border cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300"
+                    className="py-2 px-1 rounded-xl flex flex-col items-center gap-1 text-[9px] font-bold border cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300"
                   >
-                    <Copy size={15} />
-                    <span>நகலெடு</span>
+                    <Copy size={14} />
+                    <span className="truncate">நகலெடு</span>
                   </button>
 
                   <button
@@ -980,18 +999,30 @@ export default function BibleEmulator() {
                       shareVerse(selectedVerseForAction);
                       setSelectedVerseForAction(null);
                     }}
-                    className="p-2.5 rounded-xl flex flex-col items-center gap-1 text-[10px] font-bold border cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300"
+                    className="py-2 px-1 rounded-xl flex flex-col items-center gap-1 text-[9px] font-bold border cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300"
                   >
-                    <Share2 size={15} />
-                    <span>பகிர்</span>
+                    <Share2 size={14} />
+                    <span className="truncate">பகிர்</span>
                   </button>
 
                   <button
                     onClick={() => openNoteDialog(selectedVerseForAction)}
-                    className="p-2.5 rounded-xl flex flex-col items-center gap-1 text-[10px] font-bold border cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300"
+                    className="py-2 px-1 rounded-xl flex flex-col items-center gap-1 text-[9px] font-bold border cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300"
                   >
-                    <FileText size={15} />
-                    <span>குறிப்பு</span>
+                    <FileText size={14} />
+                    <span className="truncate">குறிப்பு</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSelectedVerseForPoster(selectedVerseForAction);
+                      setSelectedVerseForAction(null);
+                      navigateTo("poster");
+                    }}
+                    className="py-2 px-1 rounded-xl flex flex-col items-center gap-1 text-[9px] font-bold border cursor-pointer bg-blue-50/50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/40"
+                  >
+                    <ImageIcon size={14} />
+                    <span className="truncate">போஸ்டர்</span>
                   </button>
                 </div>
               </div>
@@ -1303,6 +1334,19 @@ export default function BibleEmulator() {
         {currentScreen === "audio" && (
           <div className="absolute inset-0 z-30 overflow-hidden flex flex-col h-full animate-fadeIn">
             <AudioBible isDarkMode={isDarkMode} onBack={navigateBack} />
+          </div>
+        )}
+
+        {currentScreen === "poster" && (
+          <div className="absolute inset-0 z-30 overflow-hidden flex flex-col h-full animate-fadeIn">
+            <VersePoster 
+              initialVerse={selectedVerseForPoster} 
+              onBack={() => {
+                setSelectedVerseForPoster(null);
+                navigateBack();
+              }} 
+              isDarkMode={isDarkMode} 
+            />
           </div>
         )}
 

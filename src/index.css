@@ -1,1 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Arima:wght@400;700&family=Kavivanar&family=Mukta+Malar:wght@400;700;800&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-tamil-bold: "Mukta Malar", sans-serif;
+  --font-tamil-script: "Kavivanar", sans-serif;
+  --font-tamil-display: "Arima", sans-serif;
+}
