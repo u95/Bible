@@ -36,7 +36,9 @@ import {
   Volume2,
   Trophy,
   Music,
-  Book
+  Book,
+  X,
+  CheckCircle2
 } from 'lucide-react';
 import BibleQuiz from './BibleQuiz';
 import AudioBible from './AudioBible';
@@ -75,6 +77,8 @@ export default function BibleEmulator() {
   const [isNoteModalOpen, setIsNoteModalOpen] = useState<boolean>(false);
   const [noteInput, setNoteInput] = useState<string>("");
   const [copiedText, setCopiedText] = useState<boolean>(false);
+  const [activeRedirectUrl, setActiveRedirectUrl] = useState<string | null>(null);
+  const [activeRedirectTitle, setActiveRedirectTitle] = useState<string>("");
   const [isFontDialogHovered, setIsFontDialogHovered] = useState<boolean>(false);
   const [activeHighlightColor, setActiveHighlightColor] = useState<string>("");
 
@@ -334,6 +338,13 @@ export default function BibleEmulator() {
     navigator.clipboard.writeText(text);
     setCopiedText(true);
     setTimeout(() => setCopiedText(false), 2000);
+  };
+
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>, url: string, title: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveRedirectUrl(url);
+    setActiveRedirectTitle(title);
   };
 
   const shareVerse = (v: BibleVerse) => {
@@ -630,14 +641,12 @@ export default function BibleEmulator() {
                   <p className="text-[10px] text-slate-500 dark:text-zinc-400 mt-0.5 leading-tight">பாடல் புத்தகங்கள் மற்றும் ஆன்மீக நூல்களைப் பெற இங்கே இணையுங்கள்.</p>
                 </div>
               </div>
-              <a 
-                href="https://payhip.com/Umnmelody"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button 
+                onClick={(e) => handleLinkClick(e, "https://payhip.com/Umnmelody", "UMN E-Books கடை (Store)")}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] px-3 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1 cursor-pointer shrink-0"
               >
                 பார்வையிட <ExternalLink size={10} />
-              </a>
+              </button>
             </div>
 
             {/* Bible Study Banner */}
@@ -651,40 +660,34 @@ export default function BibleEmulator() {
                   <p className="text-[10px] text-slate-500 dark:text-zinc-400 mt-0.5 leading-tight">ஆன்மீக கட்டுரைகள் மற்றும் வேத தியானங்களைப் படிக்கவும்.</p>
                 </div>
               </div>
-              <a 
-                href="https://umnministry.blogspot.com"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button 
+                onClick={(e) => handleLinkClick(e, "https://umnministry.blogspot.com", "வேதாகம ஆராய்ச்சி (Bible Study)")}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] px-3 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1 cursor-pointer shrink-0"
               >
                 பார்வையிட <ExternalLink size={10} />
-              </a>
+              </button>
             </div>
 
             {/* Bottom menu list */}
             <div className={`rounded-2xl divide-y ${isDarkMode ? 'bg-zinc-900/40 divide-zinc-800' : 'bg-white divide-slate-100'} border ${isDarkMode ? 'border-zinc-800' : 'border-slate-200'}`}>
-              <a 
-                href="https://payhip.com/Umnmelody"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button 
+                onClick={(e) => handleLinkClick(e, "https://payhip.com/Umnmelody", "UMN E-Books கடை (Store)")}
                 className="w-full px-4 py-3 text-left flex justify-between items-center hover:bg-slate-50 dark:hover:bg-zinc-800/30 cursor-pointer text-slate-900 dark:text-white"
               >
                 <span className="text-xs font-semibold flex items-center gap-2">
                   <Book size={15} className="text-blue-500" /> UMN E-Books கடை (Store)
                 </span>
                 <ChevronRight size={14} className="text-slate-400" />
-              </a>
-              <a 
-                href="https://umnministry.blogspot.com"
-                target="_blank"
-                rel="noopener noreferrer"
+              </button>
+              <button 
+                onClick={(e) => handleLinkClick(e, "https://umnministry.blogspot.com", "UMN வேதாகம ஆராய்ச்சி (Bible Study)")}
                 className="w-full px-4 py-3 text-left flex justify-between items-center hover:bg-slate-50 dark:hover:bg-zinc-800/30 cursor-pointer text-slate-900 dark:text-white"
               >
                 <span className="text-xs font-semibold flex items-center gap-2">
                   <BookOpen size={15} className="text-emerald-500" /> UMN வேதாகம ஆராய்ச்சி (Bible Study)
                 </span>
                 <ChevronRight size={14} className="text-slate-400" />
-              </a>
+              </button>
               <button 
                 onClick={() => navigateTo("settings")}
                 className="w-full px-4 py-3 text-left flex justify-between items-center hover:bg-slate-50 dark:hover:bg-zinc-800/30 cursor-pointer"
@@ -1275,16 +1278,14 @@ export default function BibleEmulator() {
               எங்கள் <strong>UMN தமிழ் வேதாகமச் செயலி</strong> மூலம் இறைவார்த்தையை எளிய முறையில் வாசிக்கவும், தேடவும், தியானிக்கவும் வழிவகை செய்கிறோம். இது முற்றிலும் இலவசமாகவும், எந்தவொரு இணையத் தொடர்பும் இல்லாமலும் ஆஃப்லைனில் முழுமையாக இயங்கும் வகையில் வடிவமைக்கப்பட்டுள்ளது.
             </div>
 
-            <div className="space-y-1.5">
+             <div className="space-y-1.5 flex flex-col items-center">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">அதிகாரப்பூர்வ வலைத்தளம்</span>
-              <a 
-                href="https://bibleonlineumnministry.blogspot.com/" 
-                target="_blank" 
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-semibold"
+              <button 
+                onClick={(e) => handleLinkClick(e, "https://bibleonlineumnministry.blogspot.com/", "UMN அதிகாரப்பூர்வ வலைத்தளம்")}
+                className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer text-center bg-transparent border-none p-0"
               >
                 bibleonlineumnministry.blogspot.com <ExternalLink size={12} />
-              </a>
+              </button>
             </div>
 
             <div className="pt-8 text-[10px] text-slate-400">
@@ -1399,6 +1400,76 @@ export default function BibleEmulator() {
           <span className="text-[9px] font-bold">பிடித்தவை</span>
         </button>
       </div>
+
+      {/* External Link Redirect Dialog */}
+      {activeRedirectUrl && (
+        <div className="absolute inset-0 bg-black/60 z-50 flex items-end animate-fadeIn">
+          <div className={`w-full rounded-t-3xl p-5 space-y-4 border-t shadow-2xl relative ${isDarkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-zinc-800/60">
+              <span className="text-xs font-black text-blue-600 dark:text-blue-400 flex items-center gap-1.5 uppercase tracking-wider">
+                <ExternalLink size={14} /> இணைப்பு உதவி (Open Link)
+              </span>
+              <button 
+                onClick={() => setActiveRedirectUrl(null)}
+                className={`p-1 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer text-slate-500`}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 block">இணைப்பின் தலைப்பு:</span>
+              <p className="text-xs font-bold">{activeRedirectTitle}</p>
+            </div>
+
+            <div className={`p-2.5 rounded-xl border font-mono text-[10px] bg-slate-50 dark:bg-zinc-950 dark:border-zinc-800/60 select-all break-all text-blue-600 dark:text-blue-400`}>
+              {activeRedirectUrl}
+            </div>
+
+            <p className="text-[10px] text-slate-400 leading-tight">
+              குறிப்பு: உங்கள் APK அல்லது சாதனத்தில் நேரடி லிங்க் வேலை செய்யாவிட்டால், 'லிங்க் நகலெடுக்க' பொத்தானை அழுத்தி, கூகுள் குரோம் போன்ற உலாவியில் பேஸ்ட் செய்து திறக்கவும்.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                onClick={() => {
+                  window.open(activeRedirectUrl, '_blank', 'noopener,noreferrer');
+                }}
+                className="py-2.5 px-3 text-[11px] font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white cursor-pointer flex items-center justify-center gap-1"
+              >
+                உலாவியில் திறக்க <ExternalLink size={11} />
+              </button>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(activeRedirectUrl);
+                  setCopiedText(true);
+                  setTimeout(() => setCopiedText(false), 2000);
+                }}
+                className={`py-2.5 px-3 text-[11px] font-bold rounded-xl border cursor-pointer hover:bg-slate-150 dark:hover:bg-zinc-800 flex items-center justify-center gap-1 ${isDarkMode ? 'border-zinc-800 bg-zinc-800/40 text-zinc-300' : 'border-slate-300 bg-slate-50 text-slate-700'}`}
+              >
+                <Copy size={11} /> லிங்க் நகலெடுக்க
+              </button>
+            </div>
+            
+            <button
+              onClick={() => {
+                window.location.href = activeRedirectUrl;
+              }}
+              className="w-full py-2 text-[10px] font-bold rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 cursor-pointer"
+            >
+              நேரடித் திசைதிருப்புதல் (Direct Redirect Fallback)
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification for copying text */}
+      {copiedText && (
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-[60] bg-slate-900/95 dark:bg-zinc-900/95 text-white text-[11px] font-bold px-4 py-2 rounded-xl shadow-lg border border-slate-800 flex items-center gap-1.5 animate-fadeIn">
+          <CheckCircle2 size={12} className="text-green-400 shrink-0" />
+          <span>நகலெடுக்கப்பட்டது! (Copied to Clipboard)</span>
+        </div>
+      )}
 
     </div>
   );
