@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import BibleEmulator from './components/BibleEmulator';
+import CodeExplorer from './components/CodeExplorer';
 import umnLogo from './assets/images/umn_logo_1783706606382.jpg';
 import { 
   ExternalLink,
-  Smartphone
+  Smartphone,
+  Terminal,
+  Code2
 } from 'lucide-react';
 
 export default function App() {
+  const [showCode, setShowCode] = useState<boolean>(false);
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
       
@@ -49,7 +53,7 @@ export default function App() {
       </header>
 
       {/* Main split workarea */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 flex flex-col items-center justify-center gap-6 overflow-hidden">
+      <main className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 flex flex-col items-center justify-start gap-8 overflow-y-auto">
         
         {/* Beautiful Centered Bible Emulator */}
         <div className="w-full flex flex-col items-center gap-4">
@@ -61,7 +65,28 @@ export default function App() {
           </div>
           
           <BibleEmulator />
+
+          {/* Toggle Button to view/explore Code */}
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <button
+              onClick={() => setShowCode(!showCode)}
+              className="px-5 py-2.5 bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-blue-500/50 rounded-xl text-xs font-bold text-slate-300 transition-all flex items-center gap-2 cursor-pointer shadow-md"
+            >
+              {showCode ? <Smartphone size={14} className="text-blue-400" /> : <Terminal size={14} className="text-blue-400" />}
+              <span>{showCode ? "💻 மூலக்குறியீட்டை மறை (Hide Source Code)" : "📁 Flutter மூலக்குறியீட்டைக் காண்க (View Flutter Code)"}</span>
+            </button>
+            <p className="text-[10px] text-slate-500">
+              VS Code-ல் இயக்க முழு குறியீட்டையும் பெற மேல் வலது மூலையில் உள்ள <span className="font-semibold text-slate-400">Export / Download ZIP</span> பயன்படுத்தவும்
+            </p>
+          </div>
         </div>
+
+        {/* Conditionally rendered Flutter Code Workspace */}
+        {showCode && (
+          <div className="w-full animate-in fade-in slide-in-from-bottom duration-300">
+            <CodeExplorer />
+          </div>
+        )}
 
       </main>
 
