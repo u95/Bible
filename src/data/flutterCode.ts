@@ -26,6 +26,7 @@ dependencies:
   path_provider: ^2.1.2
   share_plus: ^7.2.1
   flutter_staggered_grid_view: ^0.7.0
+  google_mobile_ads: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -36,6 +37,48 @@ flutter:
   uses-material-design: true
   assets:
     - assets/tamil_bible_sample.json
+`
+  },
+  {
+    path: "android/app/src/main/AndroidManifest.xml",
+    language: "xml",
+    content: `<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <application
+        android:label="UMN Tamil Bible"
+        android:name="\${applicationName}"
+        android:icon="@mipmap/ic_launcher">
+        
+        <!-- Google AdMob App ID -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-4931646089594136~6848077975"/>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+</manifest>
 `
   },
   {
@@ -110,6 +153,7 @@ dependencies {}
     content: `import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:umn_tamil_bible/providers/bible_provider.dart';
 import 'package:umn_tamil_bible/providers/theme_provider.dart';
 import 'package:umn_tamil_bible/routes/app_router.dart';
@@ -118,6 +162,9 @@ import 'package:umn_tamil_bible/models/note.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Google Mobile Ads SDK
+  await MobileAds.instance.initialize();
   
   // Initialize Hive
   await Hive.initFlutter();
@@ -171,6 +218,72 @@ class UMNBibleApp extends StatelessWidget {
       ),
       routerConfig: AppRouter.router,
     );
+  }
+}
+`
+  },
+  {
+    path: "lib/widgets/admob_banner.dart",
+    language: "dart",
+    content: `import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+class AdMobBannerWidget extends StatefulWidget {
+  const AdMobBannerWidget({super.key});
+
+  @override
+  State<AdMobBannerWidget> createState() => _AdMobBannerWidgetState();
+}
+
+class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
+  BannerAd? _bannerAd;
+  bool _isLoaded = false;
+
+  // AdMob Banner Ad Unit ID
+  static const String adUnitId = 'ca-app-pub-4931646089594136/2310067166';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAd();
+  }
+
+  void _loadAd() {
+    _bannerAd = BannerAd(
+      adUnitId: adUnitId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _isLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          debugPrint('AdMob Banner failed to load: \$err');
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoaded && _bannerAd != null) {
+      return Container(
+        alignment: Alignment.center,
+        width: _bannerAd!.size.width.toDouble(),
+        height: _bannerAd!.size.height.toDouble(),
+        child: AdWidget(ad: _bannerAd!),
+      );
+    }
+    return const SizedBox.shrink();
   }
 }
 `

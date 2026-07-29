@@ -1398,6 +1398,28 @@ export default function BibleEmulator() {
         </div>
       )}
 
+      {/* Google AdMob Banner Ad Slot */}
+      <div className={`shrink-0 border-t px-2 py-1.5 flex items-center justify-between text-xs select-none ${isDarkMode ? 'bg-zinc-900/90 border-zinc-800 text-zinc-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+        <div className="flex items-center gap-2 overflow-hidden">
+          <span className="px-1.5 py-0.5 text-[9px] font-black tracking-wider uppercase rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0">
+            Ad
+          </span>
+          <div className="flex flex-col min-w-0">
+            <span className="text-[10px] font-bold truncate text-slate-800 dark:text-slate-200">
+              Google AdMob Banner Active
+            </span>
+            <span className="text-[8.5px] font-mono text-slate-500 dark:text-slate-400 truncate">
+              ID: ca-app-pub-4931646089594136/2310067166
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0 ml-2">
+          <span className="text-[9px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
+            320x50
+          </span>
+        </div>
+      </div>
+
       {/* Phone Navigation Bar simulation */}
       <div className={`h-14 border-t shrink-0 flex items-center justify-around select-none ${isDarkMode ? 'bg-zinc-950 border-zinc-900' : 'bg-slate-100 border-slate-200'}`}>
         <button 
