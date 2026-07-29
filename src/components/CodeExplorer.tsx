@@ -15,6 +15,8 @@ export default function CodeExplorer() {
     'lib/routes': true,
     'lib/widgets': true,
     'assets': true,
+    'android': true,
+    'android/app': true,
   });
 
   const handleCopy = (content: string, path: string) => {
