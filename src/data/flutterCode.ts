@@ -82,6 +82,73 @@ flutter:
 `
   },
   {
+    path: "ios/Runner/Info.plist",
+    language: "xml",
+    content: `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleDisplayName</key>
+    <string>UMN Tamil Bible</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>umn_tamil_bible</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(FLUTTER_BUILD_NAME)</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    <key>CFBundleVersion</key>
+    <string>$(FLUTTER_BUILD_NUMBER)</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
+    <key>UIMainStoryboardFile</key>
+    <string>Main</string>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>CADisableMinimumFrameDurationOnPhone</key>
+    <true/>
+    <key>UIApplicationSupportsIndirectInputEvents</key>
+    <true/>
+    
+    <!-- Google AdMob App ID -->
+    <key>GADApplicationIdentifier</key>
+    <string>ca-app-pub-4931646089594136~6848077975</string>
+    
+    <!-- SKAdNetwork Identifiers for AdMob -->
+    <key>SKAdNetworkItems</key>
+    <array>
+        <dict>
+            <key>SKAdNetworkIdentifier</key>
+            <string>cstr6suwn9.skadnetwork</string>
+        </dict>
+    </array>
+</dict>
+</plist>
+`
+  },
+  {
     path: "android/app/build.gradle",
     language: "groovy",
     content: `plugins {
@@ -228,6 +295,7 @@ class UMNBibleApp extends StatelessWidget {
     content: `import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class AdMobBannerWidget extends StatefulWidget {
   const AdMobBannerWidget({super.key});
@@ -239,32 +307,74 @@ class AdMobBannerWidget extends StatefulWidget {
 class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
+  AdSize? _adSize;
+  double? _lastWidth;
 
   // Google AdMob Ad Unit IDs
   static const String _liveAdUnitId = 'ca-app-pub-4931646089594136/2310067166';
   static const String _testAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
 
-  // Automatically switches: Uses Test Ad ID in debug mode, and Live Ad ID in release/production build
-  String get _adUnitId => kDebugMode ? _testAdUnitId : _liveAdUnitId;
-
   @override
   void initState() {
     super.initState();
-    _loadAd();
+    // Listen to changes in settings_box to reload the ad if is_test_mode is toggled
+    Hive.box('settings_box').listenable(keys: ['is_test_mode']).addListener(_onSettingsChanged);
   }
 
-  void _loadAd() {
-    // Safely dispose of any existing ad before loading a new one
+  void _onSettingsChanged() {
+    if (mounted) {
+      final double width = MediaQuery.of(context).size.width;
+      _loadAdaptiveAd(width);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final double width = MediaQuery.of(context).size.width;
+    if (_lastWidth != width) {
+      _lastWidth = width;
+      _loadAdaptiveAd(width);
+    }
+  }
+
+  void _loadAdaptiveAd(double width) async {
+    final AdSize? size = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
+      width.truncate(),
+    );
+    if (size != null && mounted) {
+      _loadAd(size);
+    } else if (mounted) {
+      _loadAd(AdSize.banner);
+    }
+  }
+
+  void _loadAd(AdSize size) {
     _bannerAd?.dispose();
-    _isLoaded = false;
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoaded = false;
+      _adSize = size;
+    });
+
+    final box = Hive.box('settings_box');
+    // Default is_test_mode to false so live production ads run by default!
+    final isTestMode = box.get('is_test_mode', defaultValue: false);
+    
+    // Disable test mode entirely for release/production builds
+    final bool useLiveAd = kReleaseMode || !isTestMode;
+    final adUnitId = useLiveAd ? _liveAdUnitId : _testAdUnitId;
+
+    debugPrint('AdMob Banner: Initializing load with Ad Unit ID: \${adUnitId}');
 
     _bannerAd = BannerAd(
-      adUnitId: _adUnitId,
+      adUnitId: adUnitId,
       request: const AdRequest(),
-      size: AdSize.banner,
+      size: size,
       listener: BannerAdListener(
         onAdLoaded: (ad) {
-          debugPrint('AdMob Banner loaded successfully.');
+          debugPrint('AdMob Banner: Ad loaded successfully.');
           if (mounted) {
             setState(() {
               _isLoaded = true;
@@ -272,7 +382,7 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
           }
         },
         onAdFailedToLoad: (ad, err) {
-          debugPrint('AdMob Banner failed to load: \${err.message}');
+          debugPrint('AdMob Banner: Ad failed to load. Error Code: \${err.code}, Message: \${err.message}');
           ad.dispose();
           if (mounted) {
             setState(() {
@@ -281,34 +391,52 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
             });
           }
         },
+        onAdClicked: (ad) {
+          debugPrint('AdMob Banner: Ad clicked.');
+        },
+        onAdImpression: (ad) {
+          debugPrint('AdMob Banner: Ad recorded impression.');
+        },
       ),
     );
 
-    _bannerAd!.load();
+    try {
+      _bannerAd!.load();
+    } catch (e) {
+      debugPrint('AdMob Banner: Load exception: \${e}');
+      if (mounted) {
+        setState(() {
+          _isLoaded = false;
+          _bannerAd = null;
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
+    Hive.box('settings_box').listenable(keys: ['is_test_mode']).removeListener(_onSettingsChanged);
     _bannerAd?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoaded && _bannerAd != null) {
+    if (_isLoaded && _bannerAd != null && _adSize != null) {
       return Container(
         alignment: Alignment.center,
         width: double.infinity,
-        height: 50.0,
+        height: _adSize!.height.toDouble(),
+        color: Theme.of(context).cardColor,
         child: SizedBox(
-          width: _bannerAd!.size.width.toDouble(),
-          height: _bannerAd!.size.height.toDouble(),
+          width: _adSize!.width.toDouble(),
+          height: _adSize!.height.toDouble(),
           child: AdWidget(ad: _bannerAd!),
         ),
       );
     }
-    // Return empty 50px space or standard placeholder during loading to prevent shifting
-    return const SizedBox(height: 50.0);
+    // Return empty shrank space when ad is loading or failed to load to avoid intrusive layouts
+    return const SizedBox.shrink();
   }
 }
 `
@@ -1678,6 +1806,7 @@ class NotesScreen extends StatelessWidget {
     language: "dart",
     content: `import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:umn_tamil_bible/providers/theme_provider.dart';
 import 'package:umn_tamil_bible/providers/bible_provider.dart';
 
@@ -1705,6 +1834,26 @@ class SettingsScreen extends StatelessWidget {
                 themeProvider.toggleTheme();
               },
             ),
+          ),
+          const SizedBox(height: 12),
+          ValueListenableBuilder(
+            valueListenable: Hive.box('settings_box').listenable(keys: ['is_test_mode']),
+            builder: (context, Box box, widget) {
+              final isTestMode = box.get('is_test_mode', defaultValue: false);
+              return Card(
+                child: SwitchListTile(
+                  title: const Text('AdMob சோதனை பயன்முறை (Test Mode)'),
+                  subtitle: Text(isTestMode 
+                    ? 'சோதனை விளம்பரம் காட்டப்படுகிறது (Google Test Ads)' 
+                    : 'உண்மையான விளம்பரம் காட்டப்படுகிறது (Google Live Ads)'),
+                  value: isTestMode,
+                  activeColor: Colors.amber,
+                  onChanged: (bool value) {
+                    box.put('is_test_mode', value);
+                  },
+                ),
+              );
+            },
           ),
           const SizedBox(height: 12),
           Card(
