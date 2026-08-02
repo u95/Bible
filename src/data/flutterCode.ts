@@ -772,6 +772,7 @@ class AppRouter {
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:umn_tamil_bible/providers/bible_provider.dart';
+import 'package:umn_tamil_bible/widgets/admob_banner.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -782,6 +783,7 @@ class HomeScreen extends StatelessWidget {
     final daily = bibleProvider.dailyVerse;
 
     return Scaffold(
+      bottomNavigationBar: const SafeArea(child: AdMobBannerWidget()),
       appBar: AppBar(
         title: const Text('UMN Tamil Bible', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
@@ -973,6 +975,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:umn_tamil_bible/providers/bible_provider.dart';
 import 'package:umn_tamil_bible/models/bible_verse.dart';
+import 'package:umn_tamil_bible/widgets/admob_banner.dart';
 
 class BooksScreen extends StatefulWidget {
   const BooksScreen({super.key});
@@ -1011,6 +1014,7 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
     final newTestament = filteredBooks.where((b) => b.testament == 'New').toList();
 
     return Scaffold(
+      bottomNavigationBar: const SafeArea(child: AdMobBannerWidget()),
       appBar: AppBar(
         title: const Text('வேதாகமம்'),
         bottom: TabBar(
@@ -1172,6 +1176,7 @@ import 'package:flutter/services.dart';
 import 'package:umn_tamil_bible/providers/bible_provider.dart';
 import 'package:umn_tamil_bible/providers/theme_provider.dart';
 import 'package:umn_tamil_bible/models/bible_verse.dart';
+import 'package:umn_tamil_bible/widgets/admob_banner.dart';
 
 class VerseReadingScreen extends StatefulWidget {
   final int bookId;
@@ -1205,6 +1210,7 @@ class _VerseReadingScreenState extends State<VerseReadingScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
+      bottomNavigationBar: const SafeArea(child: AdMobBannerWidget()),
       appBar: AppBar(
         title: Text('\${widget.bookName} \${widget.chapter}'),
         actions: [
@@ -1379,6 +1385,7 @@ class _VerseReadingScreenState extends State<VerseReadingScreen> {
     content: `import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:umn_tamil_bible/models/bible_verse.dart';
+import 'package:umn_tamil_bible/widgets/admob_banner.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -1434,6 +1441,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      bottomNavigationBar: const SafeArea(child: AdMobBannerWidget()),
       appBar: AppBar(
         title: const Text('வேதாகம தேடுதல்'),
       ),
