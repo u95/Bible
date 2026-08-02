@@ -226,6 +226,7 @@ class UMNBibleApp extends StatelessWidget {
     path: "lib/widgets/admob_banner.dart",
     language: "dart",
     content: `import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdMobBannerWidget extends StatefulWidget {
@@ -239,9 +240,12 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
 
-  // Google AdMob Test Banner Ad Unit ID (Use for testing to ensure ads display immediately)
-  // To use your live ad unit id in production, replace with: 'ca-app-pub-4931646089594136/2310067166'
-  static const String adUnitId = 'ca-app-pub-3940256099942544/6300978111';
+  // Google AdMob Ad Unit IDs
+  static const String _liveAdUnitId = 'ca-app-pub-4931646089594136/2310067166';
+  static const String _testAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
+
+  // Automatically switches: Uses Test Ad ID in debug mode, and Live Ad ID in release/production build
+  String get _adUnitId => kDebugMode ? _testAdUnitId : _liveAdUnitId;
 
   @override
   void initState() {
@@ -251,7 +255,7 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
 
   void _loadAd() {
     _bannerAd = BannerAd(
-      adUnitId: adUnitId,
+      adUnitId: _adUnitId,
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
