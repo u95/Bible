@@ -254,22 +254,37 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
   }
 
   void _loadAd() {
+    // Safely dispose of any existing ad before loading a new one
+    _bannerAd?.dispose();
+    _isLoaded = false;
+
     _bannerAd = BannerAd(
       adUnitId: _adUnitId,
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
         onAdLoaded: (ad) {
-          setState(() {
-            _isLoaded = true;
-          });
+          debugPrint('AdMob Banner loaded successfully.');
+          if (mounted) {
+            setState(() {
+              _isLoaded = true;
+            });
+          }
         },
         onAdFailedToLoad: (ad, err) {
-          debugPrint('AdMob Banner failed to load: \$err');
+          debugPrint('AdMob Banner failed to load: \${err.message}');
           ad.dispose();
+          if (mounted) {
+            setState(() {
+              _isLoaded = false;
+              _bannerAd = null;
+            });
+          }
         },
       ),
-    )..load();
+    );
+
+    _bannerAd!.load();
   }
 
   @override
@@ -283,12 +298,17 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
     if (_isLoaded && _bannerAd != null) {
       return Container(
         alignment: Alignment.center,
-        width: _bannerAd!.size.width.toDouble(),
-        height: _bannerAd!.size.height.toDouble(),
-        child: AdWidget(ad: _bannerAd!),
+        width: double.infinity,
+        height: 50.0,
+        child: SizedBox(
+          width: _bannerAd!.size.width.toDouble(),
+          height: _bannerAd!.size.height.toDouble(),
+          child: AdWidget(ad: _bannerAd!),
+        ),
       );
     }
-    return const SizedBox.shrink();
+    // Return empty 50px space or standard placeholder during loading to prevent shifting
+    return const SizedBox(height: 50.0);
   }
 }
 `
