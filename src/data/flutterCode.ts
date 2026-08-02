@@ -109,7 +109,7 @@ if (flutterVersionName == null) {
 }
 
 android {
-    namespace "com.umnministry.tamilbible"
+    namespace "com.umnministry.app"
     compileSdk 37
 
     compileOptions {
@@ -126,7 +126,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.umnministry.tamilbible"
+        applicationId "com.umnministry.app"
         minSdk 21
         targetSdk 37
         versionCode flutterVersionCode.toInteger()
@@ -239,8 +239,9 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
 
-  // AdMob Banner Ad Unit ID
-  static const String adUnitId = 'ca-app-pub-4931646089594136/2310067166';
+  // Google AdMob Test Banner Ad Unit ID (Use for testing to ensure ads display immediately)
+  // To use your live ad unit id in production, replace with: 'ca-app-pub-4931646089594136/2310067166'
+  static const String adUnitId = 'ca-app-pub-3940256099942544/6300978111';
 
   @override
   void initState() {

@@ -1406,10 +1406,10 @@ export default function BibleEmulator() {
           </span>
           <div className="flex flex-col min-w-0">
             <span className="text-[10px] font-bold truncate text-slate-800 dark:text-slate-200">
-              Google AdMob Banner Active
+              Google AdMob Banner (Test Ad)
             </span>
             <span className="text-[8.5px] font-mono text-slate-500 dark:text-slate-400 truncate">
-              ID: ca-app-pub-4931646089594136/2310067166
+              ID: ca-app-pub-3940256099942544/6300978111
             </span>
           </div>
         </div>
