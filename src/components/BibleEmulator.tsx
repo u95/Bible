@@ -1399,76 +1399,41 @@ export default function BibleEmulator() {
         </div>
       )}
 
-      {/* Google AdMob Banner Ad Slot Mockup */}
+      {/* Google AdMob Live Banner Ad Slot Mockup */}
       <div className={`shrink-0 border-t flex flex-col select-none ${isDarkMode ? 'border-zinc-800' : 'border-slate-200'}`}>
-        {/* Ad Info Header (Small administrative strip to explain what this is) */}
+        {/* Ad Info Header */}
         <div className={`px-2 py-0.5 flex items-center justify-between text-[9px] font-medium ${isDarkMode ? 'bg-zinc-900 text-zinc-400 border-b border-zinc-800' : 'bg-slate-100 text-slate-500 border-b border-slate-200'}`}>
           <div className="flex items-center gap-1.5">
-            <span className="px-1 py-0.2 text-[8px] font-black tracking-wider uppercase rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-              SIMULATOR
+            <span className="px-1 py-0.2 text-[8px] font-black tracking-wider uppercase rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+              LIVE ADMOB
             </span>
             <span className="font-mono truncate">
-              ID: {adMode === 'live' ? 'ca-app-pub-4931646089594136/7536792356' : 'ca-app-pub-3940256099942544/6300978111'}
+              ID: ca-app-pub-4931646089594136/7536792356
             </span>
           </div>
-          <button 
-            onClick={() => setAdMode(prev => prev === 'live' ? 'test' : 'live')}
-            className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded border transition-all cursor-pointer ${
-              adMode === 'live' 
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' 
-                : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20'
-            }`}
-          >
-            {adMode === 'live' ? 'லைவ் ஐடி (Live Ad)' : 'சோதனை ஐடி (Test Ad)'}
-          </button>
         </div>
 
         {/* Visual Mockup of 320x50 Ad Banner */}
         <div className="h-[50px] w-full flex items-center justify-center relative overflow-hidden bg-[#e0e0e0] dark:bg-[#2a2a2a]">
-          {adMode === 'test' ? (
-            /* Google AdMob Standard Test Banner Mockup */
-            <div className="w-full h-full flex items-center justify-between px-3 bg-[#f3f3f3] dark:bg-zinc-800 text-slate-800 dark:text-slate-100 font-sans border-b border-zinc-700/10">
-              <div className="flex items-center gap-2">
-                {/* Simulated Green AdMob Logo */}
-                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-sm">
-                  <span className="text-[10px] font-black text-white">Ad</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold leading-tight flex items-center gap-1">
-                    Test Ad 
-                    <span className="text-[9px] bg-slate-200 dark:bg-zinc-700 text-slate-600 dark:text-zinc-400 px-1 rounded font-normal">320x50</span>
-                  </span>
-                  <span className="text-[9px] text-slate-500 dark:text-slate-400">Nice job! This is a test banner ad.</span>
-                </div>
+          {/* Simulated Live Ad Promotion */}
+          <div className="w-full h-full flex items-center justify-between px-3 bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 text-white font-sans">
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 rounded bg-amber-500 flex items-center justify-center shadow-sm shrink-0">
+                <span className="text-[9px] font-black text-slate-950">LIVE</span>
               </div>
-              
-              {/* Fake close/info actions */}
-              <div className="flex items-center gap-1 text-slate-400">
-                <div className="w-3 h-3 rounded-full border border-slate-300 dark:border-zinc-600 flex items-center justify-center text-[8px] font-bold">i</div>
-                <div className="text-sm font-semibold hover:text-red-500 cursor-pointer">×</div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[11px] font-black text-amber-300 tracking-wide truncate">
+                  தினசரி வேதாகமத் தியானங்கள் 📖
+                </span>
+                <span className="text-[9px] text-slate-300 truncate">
+                  ஆவிக்குரிய கட்டுரைகள் மற்றும் பாடல்களைப் பெற கிளிக் செய்க.
+                </span>
               </div>
             </div>
-          ) : (
-            /* Simulated Live Ad Promotion for Christian App Assets / Premium Features */
-            <div className="w-full h-full flex items-center justify-between px-3 bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 text-white font-sans">
-              <div className="flex items-center gap-2.5">
-                <div className="w-6 h-6 rounded bg-amber-500 flex items-center justify-center shadow-sm shrink-0">
-                  <span className="text-[9px] font-black text-slate-950">LIVE</span>
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[11px] font-black text-amber-300 tracking-wide truncate">
-                    தினசரி வேதாகமத் தியானங்கள் 📖
-                  </span>
-                  <span className="text-[9px] text-slate-300 truncate">
-                    ஆவிக்குரிய கட்டுரைகள் மற்றும் பாடல்களைப் பெற கிளிக் செய்க.
-                  </span>
-                </div>
-              </div>
-              <button className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-[9px] font-black px-2.5 py-1.5 rounded transition-all shrink-0 shadow-md">
-                திறக்கவும்
-              </button>
-            </div>
-          )}
+            <button className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-[9px] font-black px-2.5 py-1.5 rounded transition-all shrink-0 shadow-md">
+              திறக்கவும்
+            </button>
+          </div>
         </div>
       </div>
 
