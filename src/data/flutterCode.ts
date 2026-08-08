@@ -310,22 +310,12 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
   AdSize? _adSize;
   double? _lastWidth;
 
-  // Google AdMob Ad Unit IDs
-  static const String _liveAdUnitId = 'ca-app-pub-4931646089594136/2310067166';
-  static const String _testAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
+  // Google AdMob Live Ad Unit ID
+  static const String _liveAdUnitId = 'ca-app-pub-4931646089594136/7536792356';
 
   @override
   void initState() {
     super.initState();
-    // Listen to changes in settings_box to reload the ad if is_test_mode is toggled
-    Hive.box('settings_box').listenable(keys: ['is_test_mode']).addListener(_onSettingsChanged);
-  }
-
-  void _onSettingsChanged() {
-    if (mounted) {
-      final double width = MediaQuery.of(context).size.width;
-      _loadAdaptiveAd(width);
-    }
   }
 
   @override
@@ -358,18 +348,10 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
       _adSize = size;
     });
 
-    final box = Hive.box('settings_box');
-    // Default is_test_mode to false so live production ads run by default!
-    final isTestMode = box.get('is_test_mode', defaultValue: false);
-    
-    // Disable test mode entirely for release/production builds
-    final bool useLiveAd = kReleaseMode || !isTestMode;
-    final adUnitId = useLiveAd ? _liveAdUnitId : _testAdUnitId;
-
-    debugPrint('AdMob Banner: Initializing load with Ad Unit ID: \${adUnitId}');
+    debugPrint('AdMob Banner: Initializing live load with Ad Unit ID: $_liveAdUnitId');
 
     _bannerAd = BannerAd(
-      adUnitId: adUnitId,
+      adUnitId: _liveAdUnitId,
       request: const AdRequest(),
       size: size,
       listener: BannerAdListener(
@@ -403,7 +385,7 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
     try {
       _bannerAd!.load();
     } catch (e) {
-      debugPrint('AdMob Banner: Load exception: \${e}');
+      debugPrint('AdMob Banner: Load exception: $e');
       if (mounted) {
         setState(() {
           _isLoaded = false;
@@ -415,7 +397,6 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
 
   @override
   void dispose() {
-    Hive.box('settings_box').listenable(keys: ['is_test_mode']).removeListener(_onSettingsChanged);
     _bannerAd?.dispose();
     super.dispose();
   }
@@ -1834,26 +1815,6 @@ class SettingsScreen extends StatelessWidget {
                 themeProvider.toggleTheme();
               },
             ),
-          ),
-          const SizedBox(height: 12),
-          ValueListenableBuilder(
-            valueListenable: Hive.box('settings_box').listenable(keys: ['is_test_mode']),
-            builder: (context, Box box, widget) {
-              final isTestMode = box.get('is_test_mode', defaultValue: false);
-              return Card(
-                child: SwitchListTile(
-                  title: const Text('AdMob சோதனை பயன்முறை (Test Mode)'),
-                  subtitle: Text(isTestMode 
-                    ? 'சோதனை விளம்பரம் காட்டப்படுகிறது (Google Test Ads)' 
-                    : 'உண்மையான விளம்பரம் காட்டப்படுகிறது (Google Live Ads)'),
-                  value: isTestMode,
-                  activeColor: Colors.amber,
-                  onChanged: (bool value) {
-                    box.put('is_test_mode', value);
-                  },
-                ),
-              );
-            },
           ),
           const SizedBox(height: 12),
           Card(
