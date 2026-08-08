@@ -1408,7 +1408,7 @@ export default function BibleEmulator() {
               SIMULATOR
             </span>
             <span className="font-mono truncate">
-              ID: {adMode === 'live' ? 'ca-app-pub-4931646089594136/2310067166' : 'ca-app-pub-3940256099942544/6300978111'}
+              ID: {adMode === 'live' ? 'ca-app-pub-4931646089594136/7536792356' : 'ca-app-pub-3940256099942544/6300978111'}
             </span>
           </div>
           <button 
