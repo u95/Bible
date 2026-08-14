@@ -41,7 +41,8 @@ import {
   CheckCircle2,
   Image as ImageIcon,
   AlertCircle,
-  Edit3
+  Edit3,
+  Globe
 } from 'lucide-react';
 import BibleQuiz from './BibleQuiz';
 import AudioBible from './AudioBible';
@@ -458,6 +459,7 @@ export default function BibleEmulator() {
                     {currentScreen === "quiz" && "விவிலிய அறிவு விளையாட்டுப் புதையல்"}
                     {currentScreen === "audio" && "தமிழ் ஆடியோ பைபிள் வாசிப்பகம்"}
                     {currentScreen === "poster" && "வாட்ஸ்அப் & இன்ஸ்டாகிராம் ஸ்டேட்டஸ் மேக்கர்"}
+                    {currentScreen === "biblehub" && "UMN Bible Hub (விவிலிய ஆய்வு மையம்)"}
                     {currentScreen === "settings" && "பயன்பாட்டு அமைப்புகள்"}
                     {currentScreen === "about" && "UMN Ministry பற்றி"}
                   </div>
@@ -536,6 +538,7 @@ export default function BibleEmulator() {
             {[
               { id: "home", label: "முகப்பு", icon: Compass, active: currentScreen === "home" },
               { id: "books", label: "வேதாகமம்", icon: BookOpen, active: currentScreen === "books" || currentScreen === "chapters" || currentScreen === "read" },
+              { id: "biblehub", label: "UMN Bible Hub", icon: Globe, active: currentScreen === "biblehub", badge: "HUB" },
               { id: "search", label: "வசன தேடல்", icon: Search, active: currentScreen === "search" },
               { id: "notes", label: "எனது குறிப்புகள்", icon: FileText, active: currentScreen === "notes", badge: notes.length > 0 ? notes.length : undefined },
               { id: "bookmarks", label: "அடையாளங்கள்", icon: Bookmark, active: currentScreen === "bookmarks", badge: bookmarks.length > 0 ? bookmarks.length : undefined },
@@ -655,8 +658,26 @@ export default function BibleEmulator() {
                     <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
                   <div>
-                    <div className="text-xs sm:text-sm sm:text-sm md:text-base font-bold">வேதாகமம்</div>
-                    <div className="text-[10px] sm:text-xs sm:text-sm text-slate-500">66 புத்தகங்கள்</div>
+                    <div className="text-xs sm:text-sm font-bold">வேதாகமம்</div>
+                    <div className="text-[10px] sm:text-xs text-slate-500">66 புத்தகங்கள்</div>
+                  </div>
+                </button>
+
+                <button 
+                  onClick={() => navigateTo("biblehub")}
+                  className={`p-4 rounded-2xl flex flex-col items-start gap-2 border transition-all hover:scale-102 cursor-pointer relative overflow-hidden ${
+                    isDarkMode ? 'bg-blue-950/30 border-blue-800/60 hover:border-blue-700' : 'bg-blue-50/70 border-blue-200 hover:border-blue-300'
+                  } shadow-xs`}
+                >
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                    <Globe className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </div>
+                  <div>
+                    <div className="text-xs sm:text-sm font-bold flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                      <span>UMN Bible Hub</span>
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-blue-600 text-white font-black">NEW</span>
+                    </div>
+                    <div className="text-[10px] sm:text-xs text-slate-500">விவிலிய ஆய்வு தளம்</div>
                   </div>
                 </button>
 
@@ -669,7 +690,7 @@ export default function BibleEmulator() {
                   </div>
                   <div>
                     <div className="text-xs sm:text-sm font-bold">வசன தேடல்</div>
-                    <div className="text-[10px] sm:text-xs sm:text-sm text-slate-500">தேடல் பொறியாளர்</div>
+                    <div className="text-[10px] sm:text-xs text-slate-500">தேடல் பொறியாளர்</div>
                   </div>
                 </button>
 
@@ -682,7 +703,7 @@ export default function BibleEmulator() {
                   </div>
                   <div>
                     <div className="text-xs sm:text-sm font-bold">எனது குறிப்புகள்</div>
-                    <div className="text-[10px] sm:text-xs sm:text-sm text-slate-500">விளக்கக் குறிப்புகள்</div>
+                    <div className="text-[10px] sm:text-xs text-slate-500">விளக்கக் குறிப்புகள்</div>
                   </div>
                 </button>
 
@@ -695,7 +716,7 @@ export default function BibleEmulator() {
                   </div>
                   <div>
                     <div className="text-xs sm:text-sm font-bold">அடையாளங்கள்</div>
-                    <div className="text-[10px] sm:text-xs sm:text-sm text-slate-500">{bookmarks.length} வசனங்கள்</div>
+                    <div className="text-[10px] sm:text-xs text-slate-500">{bookmarks.length} வசனங்கள்</div>
                   </div>
                 </button>
 
@@ -708,7 +729,7 @@ export default function BibleEmulator() {
                   </div>
                   <div>
                     <div className="text-xs sm:text-sm font-bold">விளையாட்டு (Quiz)</div>
-                    <div className="text-[10px] sm:text-xs sm:text-sm text-slate-500">100 லெவல்கள்</div>
+                    <div className="text-[10px] sm:text-xs text-slate-500">100 லெவல்கள்</div>
                   </div>
                 </button>
 
@@ -721,7 +742,7 @@ export default function BibleEmulator() {
                   </div>
                   <div>
                     <div className="text-xs sm:text-sm font-bold">ஆடியோ பைபிள்</div>
-                    <div className="text-[10px] sm:text-xs sm:text-sm text-slate-500">வசன வாசிப்பு</div>
+                    <div className="text-[10px] sm:text-xs text-slate-500">வசன வாசிப்பு</div>
                   </div>
                 </button>
 
@@ -737,8 +758,50 @@ export default function BibleEmulator() {
                   </div>
                   <div>
                     <div className="text-xs sm:text-sm font-bold">ஸ்டேட்டஸ் மேக்கர்</div>
-                    <div className="text-[10px] sm:text-xs sm:text-sm text-slate-500">வசன அட்டை உருவாக்கம்</div>
+                    <div className="text-[10px] sm:text-xs text-slate-500">வசன அட்டை உருவாக்கம்</div>
                   </div>
+                </button>
+              </div>
+            </div>
+
+            {/* UMN Bible Hub Featured Banner */}
+            <div className={`p-4 sm:p-5 rounded-3xl border ${
+              isDarkMode 
+                ? 'bg-gradient-to-r from-blue-950/70 via-indigo-950/60 to-slate-900 border-blue-800/60' 
+                : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white border-blue-500'
+            } shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden`}>
+              <div className="flex items-start gap-3.5 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-inner border border-white/20">
+                  <Globe size={24} className="text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm sm:text-base font-extrabold text-white">UMN Bible Hub</h4>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 uppercase tracking-wide">
+                      Official Hub
+                    </span>
+                  </div>
+                  <p className={`text-xs sm:text-sm mt-0.5 leading-snug ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}>
+                    வேதாகம ஒப்பாய்வு, வசன கருவூலம் மற்றும் ஆன்மீக ஆய்வுக் கட்டுரைகளை ஒரே இடத்தில் பெற UMN Bible Hub தளத்தை அணுகுங்கள்.
+                  </p>
+                  <p className="text-[11px] font-mono text-blue-200 mt-1 truncate">
+                    https://u95.github.io/Umn-Bible-Hub-/
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto relative z-10 shrink-0">
+                <button 
+                  onClick={() => navigateTo("biblehub")}
+                  className="flex-1 sm:flex-initial bg-white hover:bg-blue-50 text-blue-900 font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-2xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <Globe size={15} /> ஹப் திறக்க
+                </button>
+                <button 
+                  onClick={(e) => handleLinkClick(e, "https://u95.github.io/Umn-Bible-Hub-/", "UMN Bible Hub (அதிகாரப்பூர்வ தளம்)")}
+                  className="bg-white/15 hover:bg-white/25 text-white font-bold text-xs sm:text-sm px-3.5 py-2.5 rounded-2xl transition-all border border-white/20 flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                  title="இணைப்பு விவரம்"
+                >
+                  <ExternalLink size={15} />
                 </button>
               </div>
             </div>
@@ -783,6 +846,20 @@ export default function BibleEmulator() {
 
             {/* Bottom menu list */}
             <div className={`rounded-2xl divide-y ${isDarkMode ? 'bg-zinc-900/40 divide-zinc-800' : 'bg-white divide-slate-100'} border ${isDarkMode ? 'border-zinc-800' : 'border-slate-200'}`}>
+              <button 
+                onClick={() => navigateTo("biblehub")}
+                className="w-full px-4 py-3 text-left flex justify-between items-center hover:bg-slate-50 dark:hover:bg-zinc-800/30 cursor-pointer text-slate-900 dark:text-white"
+              >
+                <span className="text-xs sm:text-sm font-semibold flex items-center gap-2">
+                  <Globe size={15} className="text-blue-500" /> UMN Bible Hub (விவிலிய ஆய்வு தளம்)
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 font-bold">
+                    u95.github.io
+                  </span>
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
+                </div>
+              </button>
               <button 
                 onClick={(e) => handleLinkClick(e, "https://payhip.com/Umnmelody", "UMN E-Books கடை (Store)")}
                 className="w-full px-4 py-3 text-left flex justify-between items-center hover:bg-slate-50 dark:hover:bg-zinc-800/30 cursor-pointer text-slate-900 dark:text-white"
@@ -1887,18 +1964,104 @@ export default function BibleEmulator() {
               எங்கள் <strong>UMN தமிழ் வேதாகமச் செயலி</strong> மூலம் இறைவார்த்தையை எளிய முறையில் வாசிக்கவும், தேடவும், தியானிக்கவும் வழிவகை செய்கிறோம். இது முற்றிலும் இலவசமாகவும், எந்தவொரு இணையத் தொடர்பும் இல்லாமலும் ஆஃப்லைனில் முழுமையாக இயங்கும் வகையில் வடிவமைக்கப்பட்டுள்ளது.
             </div>
 
-             <div className="space-y-1.5 flex flex-col items-center">
-              <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider block">அதிகாரப்பூர்வ வலைத்தளம்</span>
-              <button 
-                onClick={(e) => handleLinkClick(e, "https://bibleonlineumnministry.blogspot.com/", "UMN அதிகாரப்பூர்வ வலைத்தளம்")}
-                className="inline-flex items-center gap-1 text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer text-center bg-transparent border-none p-0"
-              >
-                bibleonlineumnministry.blogspot.com <ExternalLink size={12} />
-              </button>
+            <div className="space-y-3 flex flex-col items-center">
+              <div className="space-y-1 text-center">
+                <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider block">UMN Bible Hub தளம்</span>
+                <button 
+                  onClick={() => navigateTo("biblehub")}
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer text-center bg-blue-50 dark:bg-blue-950/40 px-3 py-1 rounded-xl border border-blue-200 dark:border-blue-800"
+                >
+                  <Globe size={14} /> UMN Bible Hub: u95.github.io/Umn-Bible-Hub-/ <ExternalLink size={12} />
+                </button>
+              </div>
+
+              <div className="space-y-1 text-center">
+                <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider block">அதிகாரப்பூர்வ வலைத்தளம்</span>
+                <button 
+                  onClick={(e) => handleLinkClick(e, "https://bibleonlineumnministry.blogspot.com/", "UMN அதிகாரப்பூர்வ வலைத்தளம்")}
+                  className="inline-flex items-center gap-1 text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer text-center bg-transparent border-none p-0"
+                >
+                  bibleonlineumnministry.blogspot.com <ExternalLink size={12} />
+                </button>
+              </div>
             </div>
 
             <div className="pt-8 text-[10px] sm:text-xs text-slate-400">
               © 2026 UMN Ministry. All Rights Reserved.
+            </div>
+          </div>
+        )}
+
+        {/* SCREEN: UMN BIBLE HUB */}
+        {currentScreen === "biblehub" && (
+          <div className="p-3 sm:p-6 space-y-4 animate-fadeIn w-full max-w-7xl mx-auto">
+            {/* Hub Header Card */}
+            <div className={`p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'} shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4`}>
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                  <Globe size={24} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-base sm:text-lg tracking-tight">UMN Bible Hub</h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-300">
+                      Official Resource
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                    விவிலிய ஆய்வு, ஒப்பீடுகள் மற்றும் ஆன்மீக வளங்களின் முழுமையான மையம்
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <button
+                  onClick={() => {
+                    copyToClipboard("https://u95.github.io/Umn-Bible-Hub-/");
+                  }}
+                  className={`flex-1 md:flex-initial px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    isDarkMode ? 'border-zinc-800 hover:bg-zinc-800 text-zinc-300' : 'border-slate-200 hover:bg-slate-100 text-slate-700'
+                  }`}
+                  title="லிங்க் நகலெடு"
+                >
+                  <Copy size={14} /> லிங்க் நகலெடு
+                </button>
+
+                <button
+                  onClick={(e) => handleLinkClick(e, "https://u95.github.io/Umn-Bible-Hub-/", "UMN Bible Hub")}
+                  className="flex-1 md:flex-initial px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>திறக்க (Open Hub)</span>
+                  <ExternalLink size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Live Interactive Frame */}
+            <div className={`w-full rounded-3xl overflow-hidden border shadow-lg ${isDarkMode ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-slate-200'}`}>
+              <div className={`px-4 py-2.5 border-b flex items-center justify-between text-xs font-mono ${isDarkMode ? 'bg-zinc-900 border-zinc-800 text-zinc-400' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
+                <div className="flex items-center gap-2 truncate">
+                  <Globe size={14} className="text-blue-500 shrink-0" />
+                  <span className="truncate">https://u95.github.io/Umn-Bible-Hub-/</span>
+                </div>
+                <button
+                  onClick={(e) => handleLinkClick(e, "https://u95.github.io/Umn-Bible-Hub-/", "UMN Bible Hub")}
+                  className="text-blue-600 dark:text-blue-400 hover:underline font-bold shrink-0 flex items-center gap-1 font-sans text-xs cursor-pointer"
+                >
+                  முழுத்திரை / புதிய தாவல் <ExternalLink size={12} />
+                </button>
+              </div>
+
+              <div className="relative w-full h-[75vh] min-h-[550px] bg-slate-100 dark:bg-zinc-900">
+                <iframe
+                  src="https://u95.github.io/Umn-Bible-Hub-/"
+                  title="UMN Bible Hub"
+                  className="w-full h-full border-0"
+                  loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
             </div>
           </div>
         )}
@@ -2067,6 +2230,12 @@ export default function BibleEmulator() {
           </div>
 
           <div className="flex items-center gap-4 text-xs font-semibold">
+            <button 
+              onClick={() => { setHistory([]); setCurrentScreen("biblehub"); }} 
+              className="text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
+            >
+              <Globe size={13} /> UMN Bible Hub
+            </button>
             <button 
               onClick={() => { setHistory([]); setCurrentScreen("search"); }} 
               className="hover:text-blue-500 cursor-pointer"
