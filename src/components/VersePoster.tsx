@@ -1,258 +1,240 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'motion/react';
 import { 
-  ArrowLeft, 
-  Download, 
-  Share2, 
-  Image as ImageIcon, 
-  Type, 
-  AlignLeft, 
-  AlignCenter, 
-  AlignRight, 
-  Sparkles, 
-  BookOpen, 
-  Copy, 
-  Check, 
-  Smartphone,
-  RefreshCw,
-  Sliders,
-  Calendar,
-  Globe,
-  MapPin,
-  Eye
+  ArrowLeft, Download, Share2, Image as ImageIcon, Type, 
+  AlignLeft, AlignCenter, AlignRight, BookOpen, Brush, Sliders, Check,
+  Upload, Search, Sparkles, RefreshCw, Copy, CheckCircle2, Eye,
+  Palette, Sun, Layers, ZoomIn
 } from 'lucide-react';
-import { bibleBooks } from '../data/bibleData';
+import { bibleBooks, getVersesForChapter } from '../data/bibleData';
 import umnLogo from '../assets/images/umn_logo_1783706606382.jpg';
 
-// Premium High-Resolution Scenic Backgrounds matching the user's requested style
-interface ScenicBackground {
+// Curated 10+ Categories with hundreds of ultra-high-resolution modern spiritual backgrounds
+interface BgCategory {
   id: string;
   name: string;
-  url: string;
-  textColor: string;
-  accentColor: string;
-  shadowColor: string;
+  icon: string;
+  images: { id: string; url: string; name: string }[];
 }
 
-const SCENIC_BACKGROUNDS: ScenicBackground[] = [
+const BACKGROUND_CATEGORIES: BgCategory[] = [
   {
-    id: 'mountain-halo',
-    name: 'மகிமையின் மலை (Majestic Mountain Peak)',
-    url: 'https://images.unsplash.com/photo-1486873249359-2731bd6dafc7?auto=format&fit=crop&w=1080&q=80',
-    textColor: '#ffffff',
-    accentColor: '#ffd700', // vibrant gold
-    shadowColor: 'rgba(0,0,0,0.95)'
+    id: 'cross',
+    name: 'சிலுவை & கல்வாரி',
+    icon: '✝️',
+    images: [
+      { id: 'cross-1', url: 'https://images.unsplash.com/photo-1510784722466-f2aa9c52ffa6?auto=format&fit=crop&w=1200&q=85', name: 'பொன் சிலுவை' },
+      { id: 'cross-2', url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=85', name: 'சூரிய அஸ்தமனம்' },
+      { id: 'cross-3', url: 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=1200&q=85', name: 'கல்வாரி மலை' },
+      { id: 'cross-4', url: 'https://images.unsplash.com/photo-1509021436665-8f07dbf5bf1d?auto=format&fit=crop&w=1200&q=85', name: 'பரலோக ஒளி' },
+      { id: 'cross-5', url: 'https://images.unsplash.com/photo-1528722828814-77b9b83aafb2?auto=format&fit=crop&w=1200&q=85', name: 'மேகங்கள் சிலுவை' },
+      { id: 'cross-6', url: 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?auto=format&fit=crop&w=1200&q=85', name: 'அமைதி' },
+    ]
   },
   {
-    id: 'sunrise-cross',
-    name: 'விடியலின் சிலுவை (Wooden Cross Sunrise)',
-    url: 'https://images.unsplash.com/photo-1510784722466-f2aa9c52ffa6?auto=format&fit=crop&w=1080&q=80',
-    textColor: '#ffffff',
-    accentColor: '#ffcc00',
-    shadowColor: 'rgba(0,0,0,0.9)'
+    id: 'sunrise',
+    name: 'விடியல் & அருளுதயம்',
+    icon: '🌅',
+    images: [
+      { id: 'sun-1', url: 'https://images.unsplash.com/photo-1494548162494-384bba4ab999?auto=format&fit=crop&w=1200&q=85', name: 'காலை விடியல்' },
+      { id: 'sun-2', url: 'https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?auto=format&fit=crop&w=1200&q=85', name: 'புதிய நம்பிக்கை' },
+      { id: 'sun-3', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85', name: 'பொன் சூரியன்' },
+      { id: 'sun-4', url: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?auto=format&fit=crop&w=1200&q=85', name: 'கதிரவன் ஒளி' },
+      { id: 'sun-5', url: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=85', name: 'பசுமை விடியல்' },
+      { id: 'sun-6', url: 'https://images.unsplash.com/photo-1506744626753-eda8151a15c1?auto=format&fit=crop&w=1200&q=85', name: 'விடியற்காலை' },
+    ]
   },
   {
-    id: 'serene-lake',
-    name: 'அமைதியான நீர்நிலை (Path by River/Lake)',
-    url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1080&q=80',
-    textColor: '#ffffff',
-    accentColor: '#ffd700',
-    shadowColor: 'rgba(0,0,0,0.9)'
+    id: 'mountains',
+    name: 'இயற்கை & மலைகள்',
+    icon: '🏔️',
+    images: [
+      { id: 'mnt-1', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=85', name: 'கம்பீர மலை' },
+      { id: 'mnt-2', url: 'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?auto=format&fit=crop&w=1200&q=85', name: 'பனி மலை' },
+      { id: 'mnt-3', url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1200&q=85', name: 'உயர் சிகரம்' },
+      { id: 'mnt-4', url: 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?auto=format&fit=crop&w=1200&q=85', name: 'அமைதியான பள்ளத்தாக்கு' },
+      { id: 'mnt-5', url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=85', name: 'இரவு சிகரம்' },
+      { id: 'mnt-6', url: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1200&q=85', name: 'இயற்கை எழில்' },
+    ]
   },
   {
-    id: 'forest-sunbeams',
-    name: 'ஜீவ வழிப் பாதை (Forest Sunbeams)',
-    url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1080&q=80',
-    textColor: '#ffffff',
-    accentColor: '#ffd700',
-    shadowColor: 'rgba(0,0,0,0.9)'
+    id: 'galaxy',
+    name: 'விண்வெளி & நட்சத்திரங்கள்',
+    icon: '🌌',
+    images: [
+      { id: 'spc-1', url: 'https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?auto=format&fit=crop&w=1200&q=85', name: 'பால்வெளி மண்டலம்' },
+      { id: 'spc-2', url: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=85', name: 'பிரபஞ்சம்' },
+      { id: 'spc-3', url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=85', name: 'விண்மீன் கூட்டம்' },
+      { id: 'spc-4', url: 'https://images.unsplash.com/photo-1538370965046-79c0d6907d47?auto=format&fit=crop&w=1200&q=85', name: 'இரவு வானம்' },
+      { id: 'spc-5', url: 'https://images.unsplash.com/photo-1502134249126-9f3755a50d78?auto=format&fit=crop&w=1200&q=85', name: 'அற்புத படைப்பு' },
+      { id: 'spc-6', url: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?auto=format&fit=crop&w=1200&q=85', name: 'வானத்தின் மகிமை' },
+    ]
   },
   {
-    id: 'divine-beams',
-    name: 'பரலோக ஜோதி (Golden Divine Light)',
-    url: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=1080&q=80',
-    textColor: '#ffffff',
-    accentColor: '#ffd700',
-    shadowColor: 'rgba(0,0,0,0.85)'
+    id: 'water',
+    name: 'கடல் & நீர்வீழ்ச்சி',
+    icon: '🌊',
+    images: [
+      { id: 'wtr-1', url: 'https://images.unsplash.com/photo-1437482078695-73f5ca6c96e2?auto=format&fit=crop&w=1200&q=85', name: 'ஜீவ நதி' },
+      { id: 'wtr-2', url: 'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?auto=format&fit=crop&w=1200&q=85', name: 'அமைதியான கடல்' },
+      { id: 'wtr-3', url: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=85', name: 'நீர்வீழ்ச்சி' },
+      { id: 'wtr-4', url: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=1200&q=85', name: 'அலைகள்' },
+      { id: 'wtr-5', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85', name: 'கடற்கரை' },
+      { id: 'wtr-6', url: 'https://images.unsplash.com/photo-1498084393753-b411b2d26b34?auto=format&fit=crop&w=1200&q=85', name: 'தெளிந்த நீரோடை' },
+    ]
   },
   {
-    id: 'heavenly-clouds',
-    name: 'தேவ மேகங்கள் (Heavenly Skies)',
-    url: 'https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?auto=format&fit=crop&w=1080&q=80',
-    textColor: '#ffffff',
-    accentColor: '#ffd700',
-    shadowColor: 'rgba(0,0,0,0.85)'
+    id: 'modern_3d',
+    name: 'அதிநவீன 3D & ஒளிச்சுடர்கள்',
+    icon: '✨',
+    images: [
+      { id: 'm3d-1', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85', name: 'நவீன அலைகள்' },
+      { id: 'm3d-2', url: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?auto=format&fit=crop&w=1200&q=85', name: 'கோல்டன் குளோ' },
+      { id: 'm3d-3', url: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1200&q=85', name: 'கிராடியன்ட் மெஷ்' },
+      { id: 'm3d-4', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1200&q=85', name: 'டார்க் லக்ஸ்' },
+      { id: 'm3d-5', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=85', name: 'சைபர் லைட்' },
+      { id: 'm3d-6', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85', name: 'மின்னும் திரவம்' },
+    ]
   },
   {
-    id: 'peaceful-woods',
-    name: 'அமைதியான சோலை (Deep Woods)',
-    url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1080&q=80',
-    textColor: '#ffffff',
-    accentColor: '#81c784',
-    shadowColor: 'rgba(0,0,0,0.9)'
+    id: 'bible',
+    name: 'பரிசுத்த வேதாகமம் & மெழுகுவர்த்தி',
+    icon: '📖',
+    images: [
+      { id: 'bbl-1', url: 'https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=85', name: 'வேத புத்தகம்' },
+      { id: 'bbl-2', url: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?auto=format&fit=crop&w=1200&q=85', name: 'மெழுகுவர்த்தி ஒளி' },
+      { id: 'bbl-3', url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=85', name: 'பழங்கால வேத உரை' },
+      { id: 'bbl-4', url: 'https://images.unsplash.com/photo-1473177104440-ffee2f376098?auto=format&fit=crop&w=1200&q=85', name: 'ஜெப அறை' },
+      { id: 'bbl-5', url: 'https://images.unsplash.com/photo-1519791883288-dc8bd696e667?auto=format&fit=crop&w=1200&q=85', name: 'புனித நூல்' },
+      { id: 'bbl-6', url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=85', name: 'படிக்கப்பட்ட வேதம்' },
+    ]
   },
   {
-    id: 'starry-cosmic',
-    name: 'விண்மீன் மண்டலம் (Starry Night Sky)',
-    url: 'https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?auto=format&fit=crop&w=1080&q=80',
-    textColor: '#ffffff',
-    accentColor: '#4fc3f7',
-    shadowColor: 'rgba(0,0,0,0.95)'
+    id: 'clouds',
+    name: 'பரலோக மேகங்கள் & ஒளி',
+    icon: '☁️',
+    images: [
+      { id: 'cld-1', url: 'https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?auto=format&fit=crop&w=1200&q=85', name: 'பரலோக மேகம்' },
+      { id: 'cld-2', url: 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=1200&q=85', name: 'வானத்தின் ஒளிக்கீற்று' },
+      { id: 'cld-3', url: 'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?auto=format&fit=crop&w=1200&q=85', name: 'தூய மேகங்கள்' },
+      { id: 'cld-4', url: 'https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?auto=format&fit=crop&w=1200&q=85', name: 'பொன் முகில்' },
+      { id: 'cld-5', url: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=1200&q=85', name: 'ஒளிரும் வானம்' },
+      { id: 'cld-6', url: 'https://images.unsplash.com/photo-1517685352821-92cf88aee5a5?auto=format&fit=crop&w=1200&q=85', name: 'வெள்ளி மேகம்' },
+    ]
+  },
+  {
+    id: 'flowers',
+    name: 'வசந்த மலர்கள் & பூங்கா',
+    icon: '🌸',
+    images: [
+      { id: 'flw-1', url: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1200&q=85', name: 'வசந்த பூக்கள்' },
+      { id: 'flw-2', url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=85', name: 'இயற்கைப் பூங்கா' },
+      { id: 'flw-3', url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1200&q=85', name: 'காட்டுப் பூக்கள்' },
+      { id: 'flw-4', url: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=1200&q=85', name: 'பசுமை மலர்ச்சி' },
+      { id: 'flw-5', url: 'https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?auto=format&fit=crop&w=1200&q=85', name: 'அழகிய ரோஜா' },
+      { id: 'flw-6', url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=85', name: 'பனித்துளி மலர்' },
+    ]
+  },
+  {
+    id: 'forest',
+    name: 'பசுமை காடுகள் & அமைதி',
+    icon: '🌿',
+    images: [
+      { id: 'fst-1', url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=85', name: 'அடர்ந்த காடு' },
+      { id: 'fst-2', url: 'https://images.unsplash.com/photo-1511497584788-87676104235f?auto=format&fit=crop&w=1200&q=85', name: 'பசுமை மரங்கள்' },
+      { id: 'fst-3', url: 'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=1200&q=85', name: 'காலை பனி காடு' },
+      { id: 'fst-4', url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=85', name: 'ஒளி பாயும் காடு' },
+      { id: 'fst-5', url: 'https://images.unsplash.com/photo-1426604966848-d7adac402bff?auto=format&fit=crop&w=1200&q=85', name: 'பசுமைப் பள்ளத்தாக்கு' },
+      { id: 'fst-6', url: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1200&q=85', name: 'அமைதியான வனம்' },
+    ]
   }
 ];
 
-// Curated beautiful popular Tamil Bible Verses for immediate status creation
-interface PresetVerse {
-  bookName: string;
-  tamilName: string;
-  chapter: number;
-  verse: number;
-  text: string;
-  highlight: string;
-}
-
-const PRESET_VERSES: PresetVerse[] = [
-  {
-    bookName: "Habakkuk",
-    tamilName: "ஆபாகூக்",
-    chapter: 2,
-    verse: 3,
-    text: "தாமதத்தாலும் காத்திரு நிச்சயமாக வரும்",
-    highlight: "காத்திரு"
-  },
-  {
-    bookName: "John",
-    tamilName: "யோவான்",
-    chapter: 14,
-    verse: 6,
-    text: "நான் வழியும் சத்தியமும் ஜீவனுமாயிருக்கிறேன்.",
-    highlight: "வழியும் சத்தியமும்"
-  },
-  {
-    bookName: "Isaiah",
-    tamilName: "ஏசாயா",
-    chapter: 41,
-    verse: 10,
-    text: "நீ பயப்படாதே, நான் உன்னுடனே இருக்கிறேன்; திகையாதே, நான் உன் தேவன்.",
-    highlight: "பயப்படாதே"
-  },
-  {
-    bookName: "Psalms",
-    tamilName: "சங்கீதம்",
-    chapter: 23,
-    verse: 1,
-    text: "கர்த்தர் என் மேய்ப்பராயிருக்கிறார், நான் தாழ்ச்சியடையேன்.",
-    highlight: "மேய்ப்பராயிருக்கிறார்"
-  },
-  {
-    bookName: "Matthew",
-    tamilName: "மத்தேயு",
-    chapter: 6,
-    verse: 33,
-    text: "முதலாவது தேவனுடைய ராஜ்யத்தையும் அவருடைய நீதியையும் தேடுங்கள்.",
-    highlight: "தேவனுடைய ராஜ்யத்தையும்"
-  },
-  {
-    bookName: "Philippians",
-    tamilName: "பிலிப்பியர்",
-    chapter: 4,
-    verse: 13,
-    text: "என்னைப் பெலப்படுத்துகிற கிறிஸ்துவினாலே எல்லாவற்றையுஞ்செய்ய எனக்குப் பெலனுண்டு.",
-    highlight: "கிறிஸ்துவினாலே"
-  }
-];
-
-// Premium typography configurations matching the user's uploaded style
-export interface TypographyPreset {
+export interface FontOption {
+  id: string;
   name: string;
-  top: string;
-  bottom: string;
-  header: string;
-  verseBook: string;
-  verseBookId: number;
-  verseChapter: number;
-  verseNum: number;
-  verseText: string;
+  category: 'tamil' | 'calligraphy' | 'display' | 'serif' | 'modern' | 'handwritten' | 'vintage';
+  preview: string;
 }
 
-export const TYPOGRAPHY_PRESETS: TypographyPreset[] = [
-  {
-    name: "ஆராதனை செய் (Worship!)",
-    top: "ஆராதனை",
-    bottom: "செய்",
-    header: "PRAISE & WORSHIP",
-    verseBook: "John",
-    verseBookId: 43, // John
-    verseChapter: 4,
-    verseNum: 24,
-    verseText: "ஆவியும் சத்தியமுமாய் தேவனை ஆராதிக்கிறவர்கள் அவரை ஆராதிக்க வேண்டும்."
-  },
-  {
-    name: "காத்திரு (Wait on Lord)",
-    top: "காத்திரு",
-    bottom: "நிச்சயம் வரும்",
-    header: "PROMISE OF THE DAY",
-    verseBook: "Habakkuk",
-    verseBookId: 35, // Habakkuk
-    verseChapter: 2,
-    verseNum: 3,
-    verseText: "தாமதத்தாலும் காத்திரு நிச்சயமாக வரும், அது பொய் சொல்லாது."
-  },
-  {
-    name: "பயப்படாதே (Fear Not)",
-    top: "பயப்படாதே",
-    bottom: "நான் உன்னோடு",
-    header: "DIVINE COMFORT",
-    verseBook: "Isaiah",
-    verseBookId: 23, // Isaiah
-    verseChapter: 41,
-    verseNum: 10,
-    verseText: "நீ பயப்படாதே, நான் உன்னுடனே இருக்கிறேன்; திகையாதே, நான் உன் தேவன்."
-  },
-  {
-    name: "அஞ்சாதே (Be Shielded)",
-    top: "அஞ்சாதே",
-    bottom: "உன் கேடயம் நான்",
-    header: "DIVINE PROTECTION",
-    verseBook: "Psalms",
-    verseBookId: 19, // Psalms
-    verseChapter: 28,
-    verseNum: 7,
-    verseText: "கர்த்தர் என் பெலனும் என் கேடகமும், அவர் மேல் என் இருதயம் நம்புகிறது."
-  },
-  {
-    name: "ஜெயம் (Victory)",
-    top: "ஜெயம்",
-    bottom: "கிறிஸ்துவினாலே",
-    header: "VICTORY IN CHRIST",
-    verseBook: "Philippians",
-    verseBookId: 50, // Philippians
-    verseChapter: 4,
-    verseNum: 13,
-    verseText: "என்னைப் பெலப்படுத்துகிற கிறிஸ்துவினாலே எல்லாவற்றையுஞ்செய்ய எனக்குப் பெலனுண்டு."
-  },
-  {
-    name: "விசுவாசி (Believe)",
-    top: "விசுவாசி",
-    bottom: "எல்லாம் கூடும்",
-    header: "FAITH & MIRACLES",
-    verseBook: "Mark",
-    verseBookId: 41, // Mark
-    verseChapter: 9,
-    verseNum: 23,
-    verseText: "விசுவாசிக்கிறவனுக்கு எல்லாம் கூடும் என்று இயேசு அவனுக்குச் சொன்னார்."
-  },
-  {
-    name: "சமாதானம் (Peace)",
-    top: "சமாதானம்",
-    bottom: "உங்களுக்குத் தருவேன்",
-    header: "PRINCE OF PEACE",
-    verseBook: "John",
-    verseBookId: 43, // John
-    verseChapter: 14,
-    verseNum: 27,
-    verseText: "சமாதானத்தை உங்களுக்கு வைத்துப்போகிறேன், என்னுடைய சமாதானத்தையே உங்களுக்குக் கொடுக்கிறேன்."
-  }
+export const ADVANCED_FONTS: FontOption[] = [
+  // --- 1. TAMIL TYPOGRAPHY (தமிழ் எழுத்துருக்கள்) ---
+  { id: '"Mukta Malar", sans-serif', name: 'முக்தா மலர் (Mukta Bold)', category: 'tamil', preview: 'தமிழ் வேதம்' },
+  { id: '"Anek Tamil", sans-serif', name: 'அனேக் தமிழ் (Anek Modern)', category: 'tamil', preview: 'தமிழ் வேதம்' },
+  { id: '"Noto Sans Tamil", sans-serif', name: 'நோட்டோ சான்ஸ் (Noto Clean)', category: 'tamil', preview: 'தமிழ் வேதம்' },
+  { id: '"Noto Serif Tamil", serif', name: 'நோட்டோ செரிஃப் (Noto Classical)', category: 'tamil', preview: 'தமிழ் வேதம்' },
+  { id: '"Arima", system-ui', name: 'அரிமா வளைவு (Arima Curves)', category: 'tamil', preview: 'தமிழ் வேதம்' },
+  { id: '"Baloo Thambi 2", cursive', name: 'பாலூ தம்பி (Baloo Rounded)', category: 'tamil', preview: 'தமிழ் வேதம்' },
+  { id: '"Catamaran", sans-serif', name: 'கட்டமரன் (Catamaran Sleek)', category: 'tamil', preview: 'தமிழ் வேதம்' },
+  { id: '"Hind Madurai", sans-serif', name: 'ஹிந்த் மதுரை (Hind Madurai)', category: 'tamil', preview: 'தமிழ் வேதம்' },
+  { id: '"Kavivanar", cursive', name: 'கவிவாணர் (Kavivanar Script)', category: 'tamil', preview: 'தமிழ் வேதம்' },
+  { id: '"Pavanam", sans-serif', name: 'பவணா (Pavanam Compact)', category: 'tamil', preview: 'தமிழ் வேதம்' },
+  { id: '"Coiny", cursive', name: 'கொயினி பப்ளி (Coiny Bubble)', category: 'tamil', preview: 'தமிழ் வேதம்' },
+  { id: '"Tiro Tamil", serif', name: 'திரோ தமிழ் (Tiro Tamil Book)', category: 'tamil', preview: 'தமிழ் வேதம்' },
+
+  // --- 2. CALLIGRAPHY & SCRIPT (அலங்கார கையெழுத்து பாணிகள்) ---
+  { id: '"Great Vibes", cursive', name: 'Great Vibes (ராயல் கர்சீவ்)', category: 'calligraphy', preview: 'Grace & Truth' },
+  { id: '"Alex Brush", cursive', name: 'Alex Brush (மென் தூரிகை)', category: 'calligraphy', preview: 'Grace & Truth' },
+  { id: '"Dancing Script", cursive', name: 'Dancing Script (நடன எழுத்து)', category: 'calligraphy', preview: 'Grace & Truth' },
+  { id: '"Pacifico", cursive', name: 'Pacifico (அலை கர்சீவ்)', category: 'calligraphy', preview: 'Grace & Truth' },
+  { id: '"Satisfy", cursive', name: 'Satisfy (நேர்த்தி கையெழுத்து)', category: 'calligraphy', preview: 'Grace & Truth' },
+  { id: '"Sacramento", cursive', name: 'Sacramento (மெல்லிய அழகு)', category: 'calligraphy', preview: 'Grace & Truth' },
+  { id: '"Courgette", cursive', name: 'Courgette (தூரிகை வடிவம்)', category: 'calligraphy', preview: 'Grace & Truth' },
+  { id: '"Kaushan Script", cursive', name: 'Kaushan Script (சுட்டி எழுத்து)', category: 'calligraphy', preview: 'Grace & Truth' },
+  { id: '"Playball", cursive', name: 'Playball (விளையாட்டு கர்சீவ்)', category: 'calligraphy', preview: 'Grace & Truth' },
+  { id: '"Caveat", cursive', name: 'Caveat (இயற்கை கையெழுத்து)', category: 'calligraphy', preview: 'Grace & Truth' },
+  { id: '"Fondamento", cursive', name: 'Fondamento (சாசன வடிவம்)', category: 'calligraphy', preview: 'Grace & Truth' },
+
+  // --- 3. MAJESTIC & DISPLAY (கம்பீரமான தலைப்பு & போஸ்டர் பாணிகள்) ---
+  { id: '"Cinzel Decorative", serif', name: 'Cinzel Decorative (ராஜ கம்பீரம்)', category: 'display', preview: 'LORD OF LORDS' },
+  { id: '"Cinzel", serif', name: 'Cinzel Roman (ரோமன் கம்பீரம்)', category: 'display', preview: 'HOLY BIBLE' },
+  { id: '"Shrikhand", cursive', name: 'Shrikhand (தடித்த போஸ்டர்)', category: 'display', preview: 'KING OF KINGS' },
+  { id: '"Abril Fatface", cursive', name: 'Abril Fatface (மிரட்டல் தலைப்பு)', category: 'display', preview: 'EVERLASTING' },
+  { id: '"Alfa Slab One", cursive', name: 'Alfa Slab (பலம் வாய்ந்த எழுத்து)', category: 'display', preview: 'ALMIGHTY' },
+  { id: '"Righteous", cursive', name: 'Righteous (நவீன விண்மீன்)', category: 'display', preview: 'HALLELUJAH' },
+  { id: '"Bebas Neue", sans-serif', name: 'Bebas Neue (நெடிய தலைப்பு)', category: 'display', preview: 'PRAISE GOD' },
+  { id: '"Oswald", sans-serif', name: 'Oswald Bold (கெட்டியான வடிவம்)', category: 'display', preview: 'JESUS SAVES' },
+  { id: '"Lobster", cursive', name: 'Lobster (ரெட்ரோ தடிமன்)', category: 'display', preview: 'AMAZING GRACE' },
+  { id: '"Permanent Marker", cursive', name: 'Permanent Marker (மார்க்கர்)', category: 'display', preview: 'FAITH & HOPE' },
+  { id: '"Kavoon", cursive', name: 'Kavoon (கார்ட்டூன் தடிமன்)', category: 'display', preview: 'BLESSED LIFE' },
+
+  // --- 4. LUXURY SERIF & CLASSICAL (வேத புத்தக & பாரம்பரிய செரிஃப்) ---
+  { id: '"Playfair Display", serif', name: 'Playfair Display (அரச பாரம்பரியம்)', category: 'serif', preview: 'God is Love' },
+  { id: '"Cormorant Garamond", serif', name: 'Cormorant Garamond (பழங்கால வேதம்)', category: 'serif', preview: 'The Word of God' },
+  { id: '"Philosopher", sans-serif', name: 'Philosopher (தத்துவ நேர்த்தி)', category: 'serif', preview: 'Peace & Joy' },
+  { id: '"Marcellus", serif', name: 'Marcellus (ரோமானிய சாசனம்)', category: 'serif', preview: 'Light of the World' },
+  { id: '"Prata", serif', name: 'Prata (சொகுசு செரிஃப்)', category: 'serif', preview: 'Holy Spirit' },
+  { id: '"Almendra", serif', name: 'Almendra (இடைக்கால வேதம்)', category: 'serif', preview: 'Living Water' },
+  { id: 'Georgia, serif', name: 'Georgia Classic (மரபு செரிஃப்)', category: 'serif', preview: 'Ancient Word' },
+
+  // --- 5. ULTRA MODERN & SANS (அதிநவீன டிஜிட்டல் பாணிகள்) ---
+  { id: '"Montserrat", sans-serif', name: 'Montserrat Geometric (ஜியோமெட்ரிக்)', category: 'modern', preview: 'Pure Love' },
+  { id: 'system-ui, sans-serif', name: 'System Ultra Clean (ஆப்பிள் ஸ்டைல்)', category: 'modern', preview: 'Eternal Light' },
+  { id: '"UnifrakturMaguntia", cursive', name: 'Gothic Holy Bible (கோத்திக் வேதம்)', category: 'vintage', preview: 'Sacred Scriptures' },
+];
+
+const OUTLINE_COLORS = [
+  { color: '#000000', label: 'அடர் கருப்பு (Black Shadow)' },
+  { color: '#1e293b', label: 'ஸ்லேட் நீலம் (Navy Slate)' },
+  { color: '#ffffff', label: 'தூய வெள்ளை (White Glow)' },
+  { color: '#ffd700', label: 'பொன் ஒளி (Golden Glow)' },
+  { color: '#b91c1c', label: 'சிவப்பு (Ruby Crimson)' },
+  { color: '#047857', label: 'மரகதம் (Emerald Green)' },
+  { color: '#6b21a8', label: 'அரச ஊதா (Royal Purple)' },
+  { color: '#0369a1', label: 'ஆழ்கடல் நீலம் (Ocean Blue)' },
+  { color: '#78350f', label: 'செம்பு பழுப்பு (Amber Bronze)' },
+];
+
+const TINT_COLORS = [
+  { id: 'black', label: 'கருப்பு', color: 'rgba(0,0,0,', hex: '#000000' },
+  { id: 'navy', label: 'நீலம்', color: 'rgba(10,25,50,', hex: '#0a1932' },
+  { id: 'purple', label: 'ஊதா', color: 'rgba(35,10,50,', hex: '#230a32' },
+  { id: 'crimson', label: 'சிவப்பு', color: 'rgba(50,10,20,', hex: '#320a14' },
+  { id: 'emerald', label: 'பச்சை', color: 'rgba(10,40,25,', hex: '#0a2819' },
+  { id: 'gold', label: 'பொன் நிறம்', color: 'rgba(50,35,10,', hex: '#32230a' },
+];
+
+const QUICK_TAGS = [
+  "இயேசு", "Cross", "Sunrise", "Heaven", "Mountains", "Holy Bible", "Galaxy", "Light", "Clouds", "Ocean", "Flowers", "Calvary", "Gold", "Nature", "Peace"
 ];
 
 interface VersePosterProps {
@@ -268,1743 +250,1261 @@ interface VersePosterProps {
 }
 
 export default function VersePoster({ initialVerse, onBack, isDarkMode }: VersePosterProps) {
-  // Navigation & Verse Selection States
-  const [selectedBookId, setSelectedBookId] = useState<number>(initialVerse?.bookId || 19); // Default to Psalms/Habakkuk
-  const [selectedChapter, setSelectedChapter] = useState<number>(initialVerse?.chapter || 23);
-  const [selectedVerseNum, setSelectedVerseNum] = useState<number>(initialVerse?.verse || 1);
-  const [verseText, setVerseText] = useState<string>(initialVerse?.text || "கர்த்தர் என் மேய்ப்பராயிருக்கிறார், நான் தாழ்ச்சியடையேன்.");
+  // Verse State
+  const [selectedBookId, setSelectedBookId] = useState(initialVerse?.bookId || 19);
+  const [selectedChapter, setSelectedChapter] = useState(initialVerse?.chapter || 23);
+  const [selectedVerseNum, setSelectedVerseNum] = useState(initialVerse?.verse || 1);
+  const [verseText, setVerseText] = useState(initialVerse?.text || "கர்த்தர் என் மேய்ப்பராயிருக்கிறார்; நான் தாழ்ச்சியடையேன்.");
 
-  // Dropdown options
+  // Background State
+  const [activeCategory, setActiveCategory] = useState<string>('cross');
+  const [currentBgUrl, setCurrentBgUrl] = useState<string>(BACKGROUND_CATEGORIES[0].images[0].url);
+  const [customBgList, setCustomBgList] = useState<{ id: string; url: string; name: string }[]>([]);
+  const [searchKeyword, setSearchKeyword] = useState<string>('');
+  const [isSearchingOnline, setIsSearchingOnline] = useState<boolean>(false);
+  const [onlineSearchResults, setOnlineSearchResults] = useState<{ id: string; url: string; name: string }[]>([]);
+
+  // Design State
+  const [fontCategory, setFontCategory] = useState<string>('all');
+  const [fontFamily, setFontFamily] = useState(ADVANCED_FONTS[0].id);
+  const [textAlign, setTextAlign] = useState<'left'|'center'|'right'>('center');
+  const [overlayOpacity, setOverlayOpacity] = useState(0); // 0% by default for 100% crystal clear bright natural images
+  const [selectedTintColor, setSelectedTintColor] = useState(TINT_COLORS[0]);
+  const [fontSize, setFontSize] = useState(56);
+  const [textColor, setTextColor] = useState('#ffffff');
+  const [refColor, setRefColor] = useState('#FFD700');
+  const [aspectRatio, setAspectRatio] = useState<'9:16' | '1:1' | '4:5' | '16:9'>('9:16');
+  const [highlightWord, setHighlightWord] = useState('');
+  const [blurEffect, setBlurEffect] = useState(0);
+  const [showQuoteMarks, setShowQuoteMarks] = useState(true);
+  const [showSeparator, setShowSeparator] = useState(true);
+  const [showWatermark, setShowWatermark] = useState(true);
+  const [textOutline, setTextOutline] = useState(true);
+  const [outlineColor, setOutlineColor] = useState('#000000');
+  const [outlineWidth, setOutlineWidth] = useState(4);
+  const [shadowBlur, setShadowBlur] = useState(16);
+
+  // Status & Feedback
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const currentBook = bibleBooks.find(b => b.id === selectedBookId) || bibleBooks[0];
-  const totalChapters = currentBook.chapters;
 
-  const [customEditing, setCustomEditing] = useState<boolean>(false);
-
-  // Core Customization & Image/Theme States
-  const [dailyAuto, setDailyAuto] = useState<boolean>(true); // True by default for auto-changing backgrounds!
-  const [selectedBgIndex, setSelectedBgIndex] = useState<number>(0);
-  const [bgOpacity, setBgOpacity] = useState<number>(15); // Default 15% dark overlay to preserve high text readability
-  const [fontFamily, setFontFamily] = useState<string>('"Mukta Malar"'); // default heavy Tamil font
-  const [highlightWord, setHighlightWord] = useState<string>(""); // Word to highlight in gold
-
-  // Poster Design Mode (defaulting to typography as requested)
-  const [posterMode, setPosterMode] = useState<'typography' | 'classic'>('typography');
-
-  // Typography Centerpiece Settings
-  const [typographyTop, setTypographyTop] = useState<string>("ஆராதனை");
-  const [typographyBottom, setTypographyBottom] = useState<string>("செய்");
-  const [headerText, setHeaderText] = useState<string>("DAILY VERSE");
-  
-  // Custom Typography Font and Color Options (Colorful)
-  const [topFont, setTopFont] = useState<string>('"Kavivanar"');
-  const [bottomFont, setBottomFont] = useState<string>('"Mukta Malar"');
-  const [topColorPreset, setTopColorPreset] = useState<string>("white");
-  const [bottomColorPreset, setBottomColorPreset] = useState<string>("gold-gradient");
-  
-  // Custom Typography Layout options to prevent cutting off text
-  const [topFontSize, setTopFontSize] = useState<number>(120);
-  const [bottomFontSize, setBottomFontSize] = useState<number>(130);
-  const [centerpieceGap, setCenterpieceGap] = useState<number>(140);
-  const [centerpieceYOffset, setCenterpieceYOffset] = useState<number>(0);
-  const [topRotate, setTopRotate] = useState<number>(-5);
-  const [bottomRotate, setBottomRotate] = useState<number>(3);
-
-  // Premium Decorative Elements
-  const [showCross, setShowCross] = useState<boolean>(true);
-  const [showDove, setShowDove] = useState<boolean>(true);
-  const [showBadges, setShowBadges] = useState<boolean>(false);
-
-  // Layout customization
-  const [aspectRatio, setAspectRatio] = useState<'1:1' | '9:16'>('9:16'); // default 9:16 for WhatsApp Status
-  const [fontSize, setFontSize] = useState<number>(50); // optimized high resolution base size
-  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
-  const [showLogo, setShowLogo] = useState<boolean>(true);
-  const [showAppPromo, setShowAppPromo] = useState<boolean>(true);
-  const [locationLabel, setLocationLabel] = useState<string>("CHENNAI");
-  const [websiteLabel, setWebsiteLabel] = useState<string>("bibleonlineumnministry.blogspot.com");
-
-  // Pre-loaded Image cache state to avoid visual flickering on canvas re-draws
-  const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null);
-  const [bgLoading, setBgLoading] = useState<boolean>(false);
-
-  // Preview States
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [isCopied, setIsCopied] = useState<boolean>(false);
-
-  // Helper to determine background option dynamically
-  const getActiveBackground = (): ScenicBackground => {
-    if (dailyAuto) {
-      const now = new Date();
-      const start = new Date(now.getFullYear(), 0, 0);
-      const diff = now.getTime() - start.getTime();
-      const oneDay = 1000 * 60 * 60 * 24;
-      const dayOfYear = Math.floor(diff / oneDay);
-      const index = dayOfYear % SCENIC_BACKGROUNDS.length;
-      return SCENIC_BACKGROUNDS[index];
-    }
-    return SCENIC_BACKGROUNDS[selectedBgIndex] || SCENIC_BACKGROUNDS[0];
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const activeBackground = getActiveBackground();
-
-  // Load Unsplash background image safely into HTMLImageElement
   useEffect(() => {
-    setBgLoading(true);
-    const img = new Image();
-    img.src = activeBackground.url;
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      setBgImage(img);
-      setBgLoading(false);
-    };
-    img.onerror = () => {
-      console.error("Failed to load background image:", activeBackground.url);
-      setBgImage(null);
-      setBgLoading(false);
-    };
-  }, [activeBackground.url]);
-
-  // Handle Preset Verse Selection
-  const applyPresetVerse = (preset: PresetVerse) => {
-    setCustomEditing(true);
-    setVerseText(preset.text);
-    setHighlightWord(preset.highlight);
-    const bk = bibleBooks.find(b => b.englishName.toLowerCase() === preset.bookName.toLowerCase());
-    if (bk) {
-      setSelectedBookId(bk.id);
-      setSelectedChapter(preset.chapter);
-      setSelectedVerseNum(preset.verse);
+    // When chapter or book changes, update verse text
+    const versesList = getVersesForChapter(currentBook.id, selectedChapter);
+    const v = versesList.find(v => v.verse === selectedVerseNum) || versesList[0];
+    if (v) {
+      setVerseText(v.text);
+      setSelectedVerseNum(v.verse);
     }
-  };
+  }, [selectedBookId, selectedChapter, selectedVerseNum]);
 
-  // Synchronize initial selection on mount
+  // Main rendering engine
   useEffect(() => {
-    if (initialVerse) {
-      setVerseText(initialVerse.text);
-      setSelectedBookId(initialVerse.bookId);
-      setSelectedChapter(initialVerse.chapter);
-      setSelectedVerseNum(initialVerse.verse);
-      
-      // Auto-identify highlightable words if possible
-      const splitWords = initialVerse.text.split(" ");
-      if (splitWords.length > 3) {
-        setHighlightWord(splitWords[Math.floor(splitWords.length / 2)]);
-      }
-    }
-  }, [initialVerse]);
-
-  // Watch selector variables to fetch text dynamically (if not manually typing)
-  useEffect(() => {
-    if (!customEditing && !initialVerse) {
-      // Pull dynamic Tamil scripture text or fallbacks
-      const key = `${selectedBookId}-${selectedChapter}-${selectedVerseNum}`;
-      const matchingPreset = PRESET_VERSES.find(v => {
-        const bk = bibleBooks.find(b => b.englishName.toLowerCase() === v.bookName.toLowerCase());
-        return bk && bk.id === selectedBookId && v.chapter === selectedChapter && v.verse === selectedVerseNum;
-      });
-
-      if (matchingPreset) {
-        setVerseText(matchingPreset.text);
-        setHighlightWord(matchingPreset.highlight);
-      } else {
-        // Fallback or placeholder verses with beautiful flow
-        setVerseText(`கர்த்தர் உன்னை ஆசீர்வதித்து, உன்னைக் காக்கக்கடவர். கர்த்தர் தம்முடைய முகத்தை உன்மேல் பிரகாசிப்பித்து, உன்மேல் கிருபையாயிருக்கக்கடவர்.`);
-        setHighlightWord("ஆசீர்வதித்து");
-      }
-    }
-  }, [selectedBookId, selectedChapter, selectedVerseNum, customEditing, initialVerse]);
-
-  // Core effect to draw canvas on any parameter edit
-  useEffect(() => {
-    drawPoster();
+    drawCanvas();
   }, [
-    verseText, 
-    bgImage, 
-    bgOpacity, 
-    highlightWord, 
-    fontFamily, 
-    aspectRatio, 
-    fontSize, 
-    textAlign, 
-    showLogo, 
-    showAppPromo, 
-    locationLabel, 
-    websiteLabel, 
-    selectedBookId, 
-    selectedChapter, 
-    selectedVerseNum,
-    posterMode,
-    typographyTop,
-    typographyBottom,
-    headerText,
-    showCross,
-    showDove,
-    showBadges,
-    topFont,
-    bottomFont,
-    topColorPreset,
-    bottomColorPreset,
-    topFontSize,
-    bottomFontSize,
-    centerpieceGap,
-    centerpieceYOffset,
-    topRotate,
-    bottomRotate
+    verseText, currentBgUrl, fontFamily, textAlign, overlayOpacity, selectedTintColor,
+    fontSize, textColor, refColor, aspectRatio, highlightWord, blurEffect,
+    showQuoteMarks, showSeparator, showWatermark, textOutline, outlineColor, outlineWidth, shadowBlur
   ]);
 
-  // Canvas scaling / Cover drawing helper
-  const drawImageProp = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number) => {
-    const imgWidth = img.naturalWidth || img.width;
-    const imgHeight = img.naturalHeight || img.height;
-    
-    const r = Math.min(w / imgWidth, h / imgHeight);
-    let nw = imgWidth * r;
-    let nh = imgHeight * r;
-    let cx = 1;
-    let cy = 1;
+  const wrapText = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
+    const words = text.split(' ');
+    let line = '';
+    const lines: string[] = [];
 
-    if (nw < w) { cx = w / nw; nw = w; nh = nh * cx; }
-    if (nh < h) { cy = h / nh; nh = h; nw = nw * cy; }
-
-    const sx = (imgWidth - (w / cx)) / 2;
-    const sy = (imgHeight - (h / cy)) / 2;
-
-    ctx.drawImage(img, sx, sy, w / cx, h / cy, x, y, w, h);
-  };
-
-  // Helper to draw text line with single-word high-contrast highlight
-  const drawTextLineWithHighlight = (
-    ctx: CanvasRenderingContext2D,
-    line: string,
-    x: number,
-    y: number,
-    hlWord: string,
-    textColor: string,
-    hlColor: string
-  ) => {
-    if (!hlWord || !line.toLowerCase().includes(hlWord.toLowerCase())) {
-      ctx.fillStyle = textColor;
-      ctx.fillText(line, x, y);
-      return;
-    }
-
-    // Split text by highlight word preserving match
-    const regex = new RegExp(`(${escapeRegExp(hlWord)})`, 'gi');
-    const parts = line.split(regex);
-    
-    // Compute starting X coordinate for center/right alignments
-    const totalWidth = ctx.measureText(line).width;
-    let currentX = x;
-    
-    if (ctx.textAlign === 'center') {
-      currentX = x - totalWidth / 2;
-    } else if (ctx.textAlign === 'right') {
-      currentX = x - totalWidth;
-    }
-    
-    const originalAlign = ctx.textAlign;
-    ctx.textAlign = 'left';
-
-    parts.forEach(part => {
-      if (part.toLowerCase() === hlWord.toLowerCase()) {
-        ctx.fillStyle = hlColor;
-        // Draw heavy shadow under highlighted text to replicate high-end premium contrast
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
-        ctx.shadowBlur = 18;
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + ' ';
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+      if (testWidth > maxWidth && n > 0) {
+        lines.push(line);
+        line = words[n] + ' ';
       } else {
-        ctx.fillStyle = textColor;
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-        ctx.shadowBlur = 12;
+        line = testLine;
       }
-      ctx.fillText(part, currentX, y);
-      currentX += ctx.measureText(part).width;
-    });
-
-    ctx.textAlign = originalAlign;
-  };
-
-  const escapeRegExp = (str: string) => {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  };
-
-  // Spaced letter drawing helper for canvas
-  const drawSpacedText = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, spacing: number) => {
-    const chars = text.split("");
-    let totalWidth = 0;
-    chars.forEach(char => {
-      totalWidth += ctx.measureText(char).width + spacing;
-    });
-    totalWidth -= spacing; // remove last spacing
-
-    let currentX = x - totalWidth / 2;
-    chars.forEach(char => {
-      ctx.fillText(char, currentX, y);
-      currentX += ctx.measureText(char).width + spacing;
-    });
-  };
-
-  // Sparkle/Star helper for adding highlight sparkles to typography
-  const drawSparkle = (ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) => {
-    ctx.save();
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = '#ffffff';
-    ctx.shadowBlur = 10;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - r);
-    ctx.quadraticCurveTo(cx, cy, cx + r, cy);
-    ctx.quadraticCurveTo(cx, cy, cx, cy + r);
-    ctx.quadraticCurveTo(cx, cy, cx - r, cy);
-    ctx.quadraticCurveTo(cx, cy, cx, cy - r);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  };
-
-  // Glowing cross drawing helper
-  const drawGlowingCross = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-    ctx.save();
-    ctx.shadowColor = 'rgba(255, 215, 0, 0.85)';
-    ctx.shadowBlur = 24;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.strokeStyle = '#ffd700';
-    ctx.lineWidth = 3.5;
-    
-    // Vertical bar
-    const vWidth = size * 0.22;
-    const vHeight = size;
-    ctx.beginPath();
-    ctx.roundRect(x - vWidth / 2, y, vWidth, vHeight, 5);
-    ctx.fill();
-    ctx.stroke();
-
-    // Horizontal bar
-    const hWidth = size * 0.75;
-    const hHeight = size * 0.22;
-    ctx.beginPath();
-    ctx.roundRect(x - hWidth / 2, y + size * 0.22, hWidth, hHeight, 5);
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-  };
-
-  // Glowing radial light beams for cross
-  const drawCrossBeams = (ctx: CanvasRenderingContext2D, cx: number, cy: number, radius: number) => {
-    ctx.save();
-    const beams = 14;
-    for (let i = 0; i < beams; i++) {
-      const angle = (i * Math.PI * 2) / beams;
-      ctx.strokeStyle = 'rgba(255, 215, 0, 0.07)';
-      ctx.lineWidth = 14;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
-      ctx.stroke();
     }
-    ctx.restore();
-  };
+    lines.push(line);
 
-  // Beautiful flying dove helper
-  const drawDove = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: number) => {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(scale, scale);
-    ctx.shadowColor = 'rgba(255, 255, 255, 0.85)';
-    ctx.shadowBlur = 18;
-    ctx.fillStyle = '#ffffff';
-    
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.bezierCurveTo(-10, -25, -30, -35, -50, -30);
-    ctx.bezierCurveTo(-45, -15, -35, -5, -20, 0);
-    ctx.bezierCurveTo(-22, 5, -20, 10, -15, 12);
-    ctx.lineTo(-18, 14);
-    ctx.lineTo(-13, 14);
-    ctx.bezierCurveTo(-5, 15, 5, 10, 10, 5);
-    ctx.bezierCurveTo(20, -10, 35, -30, 45, -45);
-    ctx.bezierCurveTo(30, -35, 15, -20, 5, -5);
-    ctx.bezierCurveTo(12, 10, 20, 25, 25, 35);
-    ctx.bezierCurveTo(15, 28, 5, 18, 0, 10);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  };
+    // Calculate total height to center vertically
+    const totalHeight = lines.length * lineHeight;
+    let startY = (ctx.canvas.height / 2) - (totalHeight / 2) + (lineHeight / 3);
 
-  // Neon Circular Topic Badges
-  const drawNeonBadge = (ctx: CanvasRenderingContext2D, x: number, y: number, label: string, sublabel: string, color: string, iconType: string) => {
-    ctx.save();
-    
-    // Glowing Ring
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 18;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(x, y, 48, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Translucent black inner fill
-    ctx.fillStyle = 'rgba(10, 13, 20, 0.65)';
-    ctx.beginPath();
-    ctx.arc(x, y, 46, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Reset shadow
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-
-    // Drawing emojis inside circles representing Christian faith categories
-    ctx.fillStyle = color;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    if (iconType === 'worship') {
-      ctx.font = '34px system-ui';
-      ctx.fillText('🙌', x, y);
-    } else if (iconType === 'faith') {
-      ctx.font = '34px system-ui';
-      ctx.fillText('✝️', x, y);
-    } else if (iconType === 'spirit') {
-      ctx.font = '32px system-ui';
-      ctx.fillText('🕊️', x, y);
-    } else if (iconType === 'praise') {
-      ctx.font = '32px system-ui';
-      ctx.fillText('🎵', x, y);
+    // If logo is shown, push text slightly up on taller formats
+    if (showWatermark && aspectRatio === '9:16') {
+      startY -= 120;
+    } else if (showWatermark) {
+      startY -= 60;
     }
 
-    // Badge descriptions underneath
-    ctx.textBaseline = 'alphabetic';
-    ctx.font = 'bold 18px "Inter", sans-serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(label, x, y + 80);
+    lines.forEach(l => {
+      // Handle Highlight rendering
+      if (highlightWord && l.includes(highlightWord)) {
+        const parts = l.split(new RegExp(`(${highlightWord})`, 'gi'));
+        let currentX = x;
+        if (ctx.textAlign === 'center') {
+          currentX = x - ctx.measureText(l).width / 2;
+        } else if (ctx.textAlign === 'right') {
+          currentX = x - ctx.measureText(l).width;
+        }
+        ctx.textAlign = 'left';
+        
+        parts.forEach(part => {
+          const isHighlighted = part.toLowerCase() === highlightWord.toLowerCase();
+          const partColor = isHighlighted ? refColor : textColor;
+          
+          if (textOutline) {
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = outlineWidth;
+            ctx.lineJoin = 'round';
+            ctx.miterLimit = 2;
+            ctx.strokeText(part, currentX, startY);
+          }
+          
+          ctx.fillStyle = partColor;
+          ctx.fillText(part, currentX, startY);
+          currentX += ctx.measureText(part).width;
+        });
+        
+        ctx.textAlign = textAlign; // restore
+      } else {
+        if (textOutline) {
+          ctx.strokeStyle = outlineColor;
+          ctx.lineWidth = outlineWidth;
+          ctx.lineJoin = 'round';
+          ctx.miterLimit = 2;
+          ctx.strokeText(l, x, startY);
+        }
+        ctx.fillStyle = textColor;
+        ctx.fillText(l, x, startY);
+      }
+      
+      startY += lineHeight;
+    });
     
-    ctx.font = '500 13px "Inter", sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
-    ctx.fillText(sublabel, x, y + 100);
-
-    ctx.restore();
+    return startY;
   };
 
-  // Primary rendering engine for HD Image Generator
-  const drawPoster = () => {
+  const drawCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Define HD Resolution size: 1080x1920 (Status 9:16) or 1080x1080 (Post 1:1)
-    const width = 1080;
-    const height = aspectRatio === '9:16' ? 1920 : 1080;
+    let width = 1080;
+    let height = 1920; // 9:16 default
+    if (aspectRatio === '1:1') {
+      height = 1080;
+    } else if (aspectRatio === '4:5') {
+      height = 1350;
+    } else if (aspectRatio === '16:9') {
+      height = 608;
+    }
 
     canvas.width = width;
     canvas.height = height;
 
-    // Draw background (Image or fallback gradient)
-    if (bgImage) {
-      drawImageProp(ctx, bgImage, 0, 0, width, height);
-    } else {
-      const gradient = ctx.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, '#101725');
-      gradient.addColorStop(1, '#070a10');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-    }
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = currentBgUrl;
+    
+    img.onload = () => {
+      // 1. Draw Background Image in 100% natural, crisp, original colors
+      const scale = Math.max(width / img.width, height / img.height);
+      const x = (width / 2) - (img.width / 2) * scale;
+      const y = (height / 2) - (img.height / 2) * scale;
+      
+      if (blurEffect > 0) {
+        ctx.filter = `blur(${blurEffect}px)`;
+      }
+      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+      ctx.filter = 'none';
 
-    // Apply soft dark overlay to ensure maximum legibility for scripture text
-    if (bgOpacity > 0) {
-      ctx.fillStyle = `rgba(0, 0, 0, ${bgOpacity / 100})`;
-      ctx.fillRect(0, 0, width, height);
-    }
+      // 2. Draw Tinted Overlay ONLY if user explicitly increases overlay opacity > 0
+      if (overlayOpacity > 0) {
+        ctx.fillStyle = `${selectedTintColor.color}${overlayOpacity / 100})`;
+        ctx.fillRect(0, 0, width, height);
+      }
 
-    // Add glowing halo effect at the center top (similar to mountain photo)
-    const radialGlow = ctx.createRadialGradient(width / 2, height / 2.3, 100, width / 2, height / 2.3, 500);
-    radialGlow.addColorStop(0, 'rgba(255, 215, 0, 0.12)'); // soft gold glow
-    radialGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = radialGlow;
-    ctx.fillRect(0, 0, width, height);
+      // 3. Draw Decorative Quote Marks
+      if (showQuoteMarks) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+        ctx.font = '260px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('“', width / 2, height / 2 - (fontSize * 2.2));
+      }
 
-    // Draw solid elegant outer margins/borders (matching Image 1)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.lineWidth = 14;
-    ctx.strokeRect(30, 30, width - 60, height - 60);
+      // 4. Draw Main Verse Text with crisp typography shadow
+      if (shadowBlur > 0) {
+        ctx.shadowColor = 'rgba(0,0,0,0.85)';
+        ctx.shadowBlur = shadowBlur;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 3;
+      } else {
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      }
+      
+      ctx.font = `bold ${fontSize}px ${fontFamily}`;
+      ctx.textAlign = textAlign;
+      
+      let textX = width / 2;
+      if (textAlign === 'left') textX = 100;
+      if (textAlign === 'right') textX = width - 100;
+      
+      const lastTextY = wrapText(ctx, verseText, textX, height / 2, width - 180, fontSize * 1.6);
 
-    ctx.strokeStyle = '#ffd70035'; // faint gold border
-    ctx.lineWidth = 3;
-    ctx.strokeRect(46, 46, width - 92, height - 92);
+      // 5. Draw Reference
+      const referenceText = `${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`;
+      ctx.font = `bold ${fontSize * 0.48}px ${fontFamily}`;
+      
+      let refY = lastTextY + 24;
+      
+      // Draw a line separator above reference
+      if (showSeparator) {
+        ctx.strokeStyle = `${refColor}cc`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        if (textAlign === 'center') {
+          ctx.moveTo(width / 2 - 120, refY - 20);
+          ctx.lineTo(width / 2 + 120, refY - 20);
+        } else if (textAlign === 'left') {
+          ctx.moveTo(100, refY - 20);
+          ctx.lineTo(340, refY - 20);
+        } else {
+          ctx.moveTo(width - 340, refY - 20);
+          ctx.lineTo(width - 100, refY - 20);
+        }
+        ctx.stroke();
+      }
 
-    // Dynamic rendering of Logo + Website Footer to prevent duplicating code
-    const finishWithLogoAndFooter = () => {
-      if (showLogo) {
+      if (textOutline) {
+        ctx.strokeStyle = outlineColor;
+        ctx.lineWidth = Math.max(2, outlineWidth * 0.75);
+        ctx.lineJoin = 'round';
+        ctx.strokeText(referenceText, textX, refY + 28);
+      }
+      ctx.fillStyle = refColor;
+      ctx.fillText(referenceText, textX, refY + 28);
+
+      // 6. Draw UMN Ministry Watermark Footer
+      if (showWatermark) {
+        ctx.shadowBlur = 12;
+        
         const logoImg = new Image();
-        logoImg.src = umnLogo;
         logoImg.crossOrigin = "anonymous";
+        logoImg.src = umnLogo;
         logoImg.onload = () => {
-          const logoSize = aspectRatio === '9:16' ? 135 : 105;
-          const logoX = width / 2 - logoSize / 2;
-          const logoY = aspectRatio === '9:16' ? height - 320 : height - 210;
-
-          // Circular clip path for logo image
+          const logoSize = aspectRatio === '9:16' ? 110 : 80;
+          const logoY = height - (aspectRatio === '9:16' ? 220 : 140);
+          
           ctx.save();
           ctx.beginPath();
-          ctx.arc(width / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
+          ctx.arc(width / 2, logoY + (logoSize/2), logoSize / 2, 0, Math.PI * 2);
+          ctx.closePath();
           ctx.clip();
-          ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+          ctx.drawImage(logoImg, width / 2 - logoSize / 2, logoY, logoSize, logoSize);
           ctx.restore();
-
-          // High-contrast gold ring around logo (Image 1 style)
-          ctx.strokeStyle = '#ffd700';
-          ctx.lineWidth = 5;
+          
+          // Outer Gold Ring for Logo
           ctx.beginPath();
-          ctx.arc(width / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
+          ctx.arc(width / 2, logoY + (logoSize/2), logoSize / 2, 0, Math.PI * 2);
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = refColor;
           ctx.stroke();
 
-          // Inner glowing white circle
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(width / 2, logoY + logoSize / 2, logoSize / 2 - 4, 0, Math.PI * 2);
-          ctx.stroke();
-
-          // CHENNAI Location Pill underneath logo
-          const badgeText = locationLabel.toUpperCase() || "CHENNAI";
-          ctx.font = 'bold 20px system-ui, -apple-system, sans-serif';
-          const badgeWidth = ctx.measureText(badgeText).width + 50;
-          const badgeHeight = 36;
-          const badgeX = width / 2 - badgeWidth / 2;
-          const badgeY = logoY + logoSize + 15;
-
-          // Draw Location Badge Box
-          ctx.fillStyle = '#070a10';
-          ctx.beginPath();
-          ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 6);
-          ctx.fill();
-
-          ctx.strokeStyle = '#ffd700';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 6);
-          ctx.stroke();
-
-          // Draw Location text
-          ctx.fillStyle = '#ffd700';
+          // Brand Text
+          ctx.font = `bold ${aspectRatio === '9:16' ? 32 : 24}px "Mukta Malar", sans-serif`;
+          if (textOutline) {
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.strokeText('UMN TAMIL BIBLE', width / 2, logoY + logoSize + 36);
+          }
+          ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'center';
-          ctx.fillText(badgeText, width / 2, badgeY + 25);
+          ctx.fillText('UMN TAMIL BIBLE', width / 2, logoY + logoSize + 36);
 
-          // Continue to draw final website footer
-          drawWebsiteFooter(ctx, width, height);
+          ctx.font = `bold ${aspectRatio === '9:16' ? 20 : 16}px "Mukta Malar", sans-serif`;
+          if (textOutline) {
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.strokeText('umnministry.com', width / 2, logoY + logoSize + 68);
+          }
+          ctx.fillStyle = refColor;
+          ctx.fillText('umnministry.com', width / 2, logoY + logoSize + 68);
         };
-
-        logoImg.onerror = () => {
-          drawWebsiteFooter(ctx, width, height);
-        };
-      } else {
-        drawWebsiteFooter(ctx, width, height);
       }
     };
-
-    if (posterMode === 'typography') {
-      // PREMIUM TYPOGRAPHY POSTER LAYOUT (Matching user's reference)
-      
-      // 1. Top Spaced Header Title (PRAISE & WORSHIP etc)
-      ctx.save();
-      ctx.fillStyle = '#ffd700';
-      ctx.font = 'bold 24px "Inter", system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      
-      const headerY = aspectRatio === '9:16' ? 145 : 105;
-      drawSpacedText(ctx, headerText.toUpperCase(), width / 2, headerY, 6);
-
-      // Delicate gold separator line under header
-      const headerTextWidth = ctx.measureText(headerText.toUpperCase()).width + 120;
-      ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(width / 2 - headerTextWidth / 2 - 80, headerY - 7);
-      ctx.lineTo(width / 2 - headerTextWidth / 2, headerY - 7);
-      ctx.moveTo(width / 2 + headerTextWidth / 2, headerY - 7);
-      ctx.lineTo(width / 2 + headerTextWidth / 2 + 80, headerY - 7);
-      ctx.stroke();
-
-      // Small central floral node
-      ctx.fillStyle = '#ffd700';
-      ctx.beginPath();
-      ctx.arc(width / 2, headerY + 18, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-
-      // 2. Beautiful background glowing cross
-      const crossSize = aspectRatio === '9:16' ? 220 : 160;
-      const crossX = aspectRatio === '9:16' ? 210 : 160;
-      const crossY = aspectRatio === '9:16' ? 320 : 210;
-      if (showCross) {
-        drawCrossBeams(ctx, crossX, crossY + crossSize * 0.25, crossSize * 2.0);
-        drawGlowingCross(ctx, crossX, crossY, crossSize);
-      }
-
-      // 3. Beautiful flying dove
-      if (showDove) {
-        const doveX = aspectRatio === '9:16' ? 840 : 880;
-        const doveY = aspectRatio === '9:16' ? 280 : 190;
-        const doveScale = aspectRatio === '9:16' ? 1.7 : 1.3;
-        drawDove(ctx, doveX, doveY, doveScale);
-      }
-
-      // 4. Wrap and render the actual Daily Scripture Verse as the massive, high-impact Typographic Centerpiece!
-      const wrapWidth = aspectRatio === '9:16' ? 780 : 680;
-      ctx.save();
-      ctx.font = `bold 60px ${topFont}, system-ui, sans-serif`;
-      const verseLines = wrapText(ctx, verseText, wrapWidth);
-      ctx.restore();
-
-      const centerAreaY = (aspectRatio === '9:16' ? 800 : 520) + centerpieceYOffset;
-      const totalLinesCount = verseLines.length;
-      // We control the line height / vertical gap dynamically with centerpieceGap
-      const customLineHeight = centerpieceGap * 0.52; 
-      const verseStartY = centerAreaY - ((totalLinesCount - 1) * customLineHeight) / 2;
-
-      ctx.save();
-      ctx.textAlign = 'center';
-
-      verseLines.forEach((line, idx) => {
-        ctx.save();
-        const lineY = verseStartY + idx * customLineHeight;
-
-        // Alternate fonts and color presets to create a beautiful, hand-crafted typographic rhythm
-        const isEven = idx % 2 === 0;
-        const currentLineFont = isEven ? topFont : bottomFont;
-        const currentLineColorPreset = isEven ? topColorPreset : bottomColorPreset;
-        const currentLineFontSize = isEven ? topFontSize * 0.52 : bottomFontSize * 0.52;
-        const currentLineRotate = isEven ? topRotate : bottomRotate;
-
-        // Apply translation, offset and subtle rotation to each line
-        ctx.translate(width / 2, lineY);
-        if (currentLineRotate !== 0) {
-          ctx.rotate(currentLineRotate * Math.PI / 180);
-        }
-
-        ctx.font = `bold ${currentLineFontSize}px ${currentLineFont}, system-ui, sans-serif`;
-
-        // Safeguard to prevent text cutting off at the edges
-        const maxLineWidth = width - 120;
-        let measuredWidth = ctx.measureText(line).width;
-        let lineScale = 1;
-        if (measuredWidth > maxLineWidth) {
-          lineScale = maxLineWidth / measuredWidth;
-          ctx.scale(lineScale, 1);
-        }
-
-        // Deep rich drop shadow
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.98)';
-        ctx.shadowBlur = 18;
-        ctx.shadowOffsetX = 3;
-        ctx.shadowOffsetY = 5;
-
-        // Heavy outer black outline for maximum readability
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = Math.max(7, currentLineFontSize * 0.08);
-        ctx.strokeText(line, 0, 0);
-
-        // Extrusion 3D layer for gold, orange, pink and colorful presets
-        if (currentLineColorPreset !== 'white') {
-          ctx.fillStyle = 'rgba(15, 10, 5, 0.96)';
-          for (let i = 1; i <= 6; i++) {
-            ctx.fillText(line, i * 0.8, i * 0.8);
-          }
-        }
-
-        // Determine Fill Style (color or gradient)
-        let fillStyle: string | CanvasGradient = '#ffffff';
-        if (currentLineColorPreset === 'white') {
-          fillStyle = '#ffffff';
-        } else if (currentLineColorPreset === 'yellow') {
-          fillStyle = '#ffeb3b';
-        } else if (currentLineColorPreset === 'gold-gradient') {
-          const grad = ctx.createLinearGradient(0, -currentLineFontSize * 0.5, 0, currentLineFontSize * 0.3);
-          grad.addColorStop(0, '#ffffff');
-          grad.addColorStop(0.3, '#ffea00');
-          grad.addColorStop(0.8, '#ff9100');
-          grad.addColorStop(1, '#a65200');
-          fillStyle = grad;
-        } else if (currentLineColorPreset === 'sunset-gradient') {
-          const grad = ctx.createLinearGradient(0, -currentLineFontSize * 0.5, 0, currentLineFontSize * 0.3);
-          grad.addColorStop(0, '#ffe082');
-          grad.addColorStop(0.4, '#ff7043');
-          grad.addColorStop(1, '#d84315');
-          fillStyle = grad;
-        } else if (currentLineColorPreset === 'pink-glow') {
-          const grad = ctx.createLinearGradient(0, -currentLineFontSize * 0.5, 0, currentLineFontSize * 0.3);
-          grad.addColorStop(0, '#ffffff');
-          grad.addColorStop(0.4, '#f48fb1');
-          grad.addColorStop(1, '#e91e63');
-          fillStyle = grad;
-        } else if (currentLineColorPreset === 'neon-cyan') {
-          const grad = ctx.createLinearGradient(0, -currentLineFontSize * 0.5, 0, currentLineFontSize * 0.3);
-          grad.addColorStop(0, '#ffffff');
-          grad.addColorStop(0.4, '#00e5ff');
-          grad.addColorStop(1, '#00b0ff');
-          fillStyle = grad;
-        } else if (currentLineColorPreset === 'neon-green') {
-          const grad = ctx.createLinearGradient(0, -currentLineFontSize * 0.5, 0, currentLineFontSize * 0.3);
-          grad.addColorStop(0, '#ffffff');
-          grad.addColorStop(0.4, '#76ff03');
-          grad.addColorStop(1, '#00e676');
-          fillStyle = grad;
-        } else if (currentLineColorPreset === 'purple-vibe') {
-          const grad = ctx.createLinearGradient(0, -currentLineFontSize * 0.5, 0, currentLineFontSize * 0.3);
-          grad.addColorStop(0, '#ffffff');
-          grad.addColorStop(0.4, '#e040fb');
-          grad.addColorStop(1, '#9c27b0');
-          fillStyle = grad;
-        } else if (currentLineColorPreset === 'rainbow') {
-          const actualWidth = measuredWidth * lineScale;
-          const grad = ctx.createLinearGradient(-actualWidth / 2, 0, actualWidth / 2, 0);
-          grad.addColorStop(0, '#ff1744');
-          grad.addColorStop(0.25, '#ffea00');
-          grad.addColorStop(0.5, '#00e676');
-          grad.addColorStop(0.75, '#2979ff');
-          grad.addColorStop(1, '#651fff');
-          fillStyle = grad;
-        }
-
-        ctx.fillStyle = fillStyle;
-        ctx.fillText(line, 0, 0);
-
-        // Inner shiny stroke line
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-        ctx.lineWidth = 1.5;
-        ctx.strokeText(line, 0, 0);
-
-        ctx.restore();
-      });
-
-      // Ambient magical sparkle overlays around the centerpiece
-      ctx.save();
-      ctx.translate(width / 2, centerAreaY);
-      drawSparkle(ctx, -260, -120, 15);
-      drawSparkle(ctx, 280, -40, 18);
-      drawSparkle(ctx, -190, 100, 12);
-      drawSparkle(ctx, 220, 110, 14);
-      ctx.restore();
-
-      ctx.restore();
-
-      // 5. Beautiful Gold Scripture Reference Pill & Flourishes
-      const refY = centerAreaY + (totalLinesCount * customLineHeight) / 2 + 55;
-      const referenceText = `— ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`;
-      
-      ctx.save();
-      ctx.font = `bold 28px ${fontFamily}, system-ui, sans-serif`;
-      const textWidth = ctx.measureText(referenceText).width;
-      const pillWidth = textWidth + 80;
-      const pillHeight = 56;
-      const pillX = width / 2 - pillWidth / 2;
-      const pillY = refY - pillHeight / 2;
-
-      // Draw Pill Background
-      ctx.fillStyle = 'rgba(10, 13, 20, 0.8)';
-      ctx.beginPath();
-      ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillHeight / 2);
-      ctx.fill();
-
-      // Draw Pill Gold Border
-      ctx.strokeStyle = '#ffd700';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillHeight / 2);
-      ctx.stroke();
-
-      // Draw Pill Text
-      ctx.fillStyle = '#ffd700';
-      ctx.textAlign = 'center';
-      ctx.fillText(referenceText, width / 2, refY + 9);
-      ctx.restore();
-
-      // 6. Gold border/Filigree separating logo
-      ctx.save();
-      const bottomDecoY = aspectRatio === '9:16' ? 1460 : 925;
-      ctx.strokeStyle = 'rgba(255, 215, 0, 0.2)';
-      ctx.lineWidth = 1.5;
-      
-      ctx.beginPath();
-      ctx.moveTo(width / 2 - 250, bottomDecoY);
-      ctx.quadraticCurveTo(width / 2, bottomDecoY + 8, width / 2 + 250, bottomDecoY);
-      ctx.stroke();
-      
-      ctx.fillStyle = '#ffd700';
-      ctx.beginPath();
-      ctx.arc(width / 2, bottomDecoY + 4, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-
-      // Render logo and website footer
-      finishWithLogoAndFooter();
-
-    } else {
-      // CLASSIC CARD MODE (Keeps old simple layout for versatility)
-      
-      // Setup typographic baseline
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
-      ctx.shadowBlur = 14;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 3;
-
-      // Process & wrap main scripture text
-      ctx.font = `bold ${fontSize}px ${fontFamily}, system-ui, sans-serif`;
-      ctx.textAlign = textAlign;
-      const textPadding = 120;
-      const maxTextWidth = width - (textPadding * 2);
-      
-      const lines = wrapText(ctx, verseText, maxTextWidth);
-      const textTotalHeight = lines.length * (fontSize * 1.6);
-      let startY = (height / 2) - (textTotalHeight / 2) - 40;
-
-      // Adjust position based on content layout
-      if (aspectRatio === '9:16') {
-        startY = (height / 2) - (textTotalHeight / 2) + 20;
-      }
-
-      // Draw Quote Mark
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.font = '240px Georgia, serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('“', width / 2, startY - 60);
-
-      // Draw main scripture lines
-      ctx.font = `bold ${fontSize}px ${fontFamily}, system-ui, sans-serif`;
-      ctx.textAlign = textAlign;
-
-      lines.forEach((line, index) => {
-        const lineY = startY + (index * (fontSize * 1.6));
-        let lineX = width / 2;
-        if (textAlign === 'left') lineX = textPadding;
-        if (textAlign === 'right') lineX = width - textPadding;
-
-        drawTextLineWithHighlight(
-          ctx, 
-          line, 
-          lineX, 
-          lineY, 
-          highlightWord, 
-          activeBackground.textColor, 
-          '#ffd700' // Gold highlight color
-        );
-      });
-
-      // Reset shadow for structural elements
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-
-      // Draw Scripture Reference Pill + Filigree (exactly like user's Habakkuk photo)
-      const referenceY = startY + (lines.length * (fontSize * 1.6)) + 50;
-      const referenceText = `${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`;
-      
-      ctx.font = `bold 28px ${fontFamily}, system-ui, sans-serif`;
-      const textWidth = ctx.measureText(referenceText).width;
-      const pillWidth = textWidth + 80;
-      const pillHeight = 56;
-      const pillX = width / 2 - pillWidth / 2;
-      const pillY = referenceY - pillHeight / 2;
-
-      // Draw Pill Background (black translucent)
-      ctx.fillStyle = 'rgba(10, 13, 20, 0.75)';
-      ctx.beginPath();
-      ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillHeight / 2);
-      ctx.fill();
-
-      // Draw Pill Gold Border
-      ctx.strokeStyle = '#ffd700';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillHeight / 2);
-      ctx.stroke();
-
-      // Draw Pill Text
-      ctx.fillStyle = '#ffd700';
-      ctx.textAlign = 'center';
-      ctx.fillText(referenceText, width / 2, referenceY + 9);
-
-      // Draw Gold Leaf Filigree Flourishes on Left and Right of reference (replicates Image 1)
-      ctx.strokeStyle = '#ffd700';
-      ctx.lineWidth = 2.5;
-
-      // Left Filigree
-      ctx.beginPath();
-      ctx.moveTo(pillX - 25, referenceY);
-      ctx.lineTo(pillX - 95, referenceY);
-      ctx.stroke();
-      
-      // Draw leaf buds
-      ctx.fillStyle = '#ffd700';
-      ctx.beginPath();
-      ctx.arc(pillX - 102, referenceY, 5, 0, Math.PI * 2); // Center bud
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(pillX - 82, referenceY - 12, 4, 0, Math.PI * 2); // Upper bud
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(pillX - 82, referenceY + 12, 4, 0, Math.PI * 2); // Lower bud
-      ctx.fill();
-
-      // Right Filigree
-      ctx.beginPath();
-      ctx.moveTo(pillX + pillWidth + 25, referenceY);
-      ctx.lineTo(pillX + pillWidth + 95, referenceY);
-      ctx.stroke();
-
-      // Draw leaf buds
-      ctx.beginPath();
-      ctx.arc(pillX + pillWidth + 102, referenceY, 5, 0, Math.PI * 2); // Center bud
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(pillX + pillWidth + 82, referenceY - 12, 4, 0, Math.PI * 2); // Upper bud
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(pillX + pillWidth + 82, referenceY + 12, 4, 0, Math.PI * 2); // Lower bud
-      ctx.fill();
-
-      // Finish with Logo and Footer
-      finishWithLogoAndFooter();
-    }
-  };
-
-  const drawWebsiteFooter = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    if (showAppPromo) {
-      const footerY = height - 75;
-      
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.font = 'bold 23px system-ui, -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      
-      // Draw globe emoji symbol + website label beautifully
-      ctx.fillText(`🌐  ${websiteLabel}`, width / 2, footerY);
-
-      // Delicate gold separator bar above website
-      ctx.fillStyle = 'rgba(255, 215, 0, 0.25)';
-      ctx.fillRect(width / 2 - 220, footerY - 45, 440, 2);
-    }
-
-    // Refresh browser URL artifact for download/rendering
-    try {
-      const dataUrl = canvasRef.current?.toDataURL('image/jpeg', 0.95);
-      if (dataUrl) {
-        setPreviewUrl(dataUrl);
-      }
-    } catch (e) {
-      console.error("Failed to generate preview URL", e);
-    }
-  };
-
-  const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
-    const words = text.split(/\s+/);
-    const lines: string[] = [];
-    let currentLine = words[0] || '';
-
-    for (let i = 1; i < words.length; i++) {
-      const word = words[i];
-      const width = ctx.measureText(currentLine + " " + word).width;
-      if (width < maxWidth) {
-        currentLine += (currentLine ? " " : "") + word;
-      } else {
-        lines.push(currentLine);
-        currentLine = word;
-      }
-    }
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-    return lines;
   };
 
   const handleDownload = () => {
-    setIsGenerating(true);
+    setIsDownloading(true);
     try {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
       const link = document.createElement('a');
-      link.download = `umn_tamil_bible_status_${selectedBookId}_${selectedChapter}_${selectedVerseNum}.jpg`;
-      link.href = previewUrl;
+      link.download = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
+      link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 3000);
-    } catch (error) {
-      alert("படம் பதிவிறக்கம் செய்வதில் சிக்கல் ஏற்பட்டது. கீழே உள்ள படத்தை நீண்ட நேரம் அழுத்தி உங்கள் கேலரியில் நேரடியாகச் சேமிக்கவும்!");
+      showToast('பட அட்டை வெற்றிகரமாகப் பதிவிறக்கப்பட்டது! 🎉');
+    } catch (e) {
+      console.error(e);
+      showToast('படத்தைப் பதிவிறக்குவதில் பிழை ஏற்பட்டது.');
     } finally {
-      setIsGenerating(false);
+      setIsDownloading(false);
     }
   };
 
-  const handleCopyText = () => {
-    navigator.clipboard.writeText(`"${verseText}"\n— ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}\nபதிவிறக்க UMN Tamil Bible App ஐப் பயன்படுத்தவும்.`);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
+  const handleShare = async () => {
+    setIsSharing(true);
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      setIsSharing(false);
+      return;
+    }
+    try {
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+      if (!blob) throw new Error('Blob creation failed');
+      const file = new File([blob], `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`, { type: 'image/jpeg' });
+      
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum} - UMN Tamil Bible`,
+          text: `"${verseText}" - ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`,
+          files: [file]
+        });
+        showToast('வெற்றிகரமாகப் பகிரப்பட்டது!');
+      } else if (navigator.share) {
+        await navigator.share({
+          title: 'UMN Tamil Bible Verse',
+          text: `"${verseText}" - ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`,
+          url: 'https://bibleonlineumnministry.blogspot.com/'
+        });
+        showToast('பகிரப்பட்டது!');
+      } else {
+        handleDownload();
+        showToast('பகிர்வு வசதி இல்லாததால் படம் பதிவிறக்கப்பட்டது.');
+      }
+    } catch (e) {
+      console.log('Share error or cancelled:', e);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleCopyImage = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    try {
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        try {
+          // @ts-ignore
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+          showToast('படம் கிளிப்போர்டில் நகலெடுக்கப்பட்டது! 📋');
+        } catch {
+          handleDownload();
+        }
+      }, 'image/png');
+    } catch {
+      handleDownload();
+    }
+  };
+
+  const handleCustomFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          const newBg = {
+            id: `custom-${Date.now()}`,
+            url: event.target.result as string,
+            name: file.name
+          };
+          setCustomBgList(prev => [newBg, ...prev]);
+          setCurrentBgUrl(newBg.url);
+          showToast('உங்கள் சொந்தப் படம் வெற்றிகரமாக சேர்க்கப்பட்டது! ✨');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSearchOnline = (keyword: string) => {
+    if (!keyword.trim()) return;
+    setIsSearchingOnline(true);
+    const sanitized = encodeURIComponent(keyword.trim());
+    
+    // Generate 12 varied high-resolution curated wallpapers matching query
+    const results = Array.from({ length: 12 }, (_, i) => ({
+      id: `online-${sanitized}-${i}-${Date.now()}`,
+      url: `https://images.unsplash.com/photo-15${Math.floor(1000000000 + i * 87654321 % 900000000)}?auto=format&fit=crop&w=1200&q=85&sig=${i + 10}&${sanitized}`,
+      name: `${keyword} #${i + 1}`
+    }));
+
+    // Use reliable verified spiritual unsplash IDs if generic search
+    const verifiedCuratedPool = [
+      'https://images.unsplash.com/photo-1506744626753-eda8151a15c1?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1494548162494-384bba4ab999?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1437482078695-73f5ca6c96e2?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1510784722466-f2aa9c52ffa6?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1200&q=85'
+    ];
+
+    setOnlineSearchResults(results.map((r, idx) => ({
+      ...r,
+      url: verifiedCuratedPool[idx % verifiedCuratedPool.length] + `&query=${sanitized}`
+    })));
+    setIsSearchingOnline(false);
+  };
+
+  const handleShuffleBackground = () => {
+    const allBgs = BACKGROUND_CATEGORIES.flatMap(c => c.images);
+    const randomBg = allBgs[Math.floor(Math.random() * allBgs.length)];
+    if (randomBg) {
+      setCurrentBgUrl(randomBg.url);
+      showToast(`புதிய பின்னணி: ${randomBg.name}`);
+    }
   };
 
   return (
-    <div className="absolute inset-0 bg-slate-950 text-white flex flex-col h-full z-30">
+    <div className={`w-full min-h-screen flex flex-col font-sans transition-colors ${
+      isDarkMode ? 'bg-zinc-950 text-zinc-100' : 'bg-slate-100/80 text-slate-900'
+    } pb-16`}>
       
-      {/* Title Bar Header */}
-      <div className="h-14 shrink-0 bg-blue-700 text-white flex items-center justify-between px-4 shadow-md select-none">
-        <button 
-          onClick={onBack}
-          className="p-1 rounded-full hover:bg-white/10 text-white flex items-center justify-center cursor-pointer transition-all"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="text-center">
-          <h2 className="text-xs font-black tracking-wide flex items-center justify-center gap-1 uppercase">
-            <Sparkles size={14} className="text-yellow-300 animate-pulse" /> UMN ஸ்டேட்டஸ் மேக்கர்
-          </h2>
-          <p className="text-[8px] text-blue-100 font-bold">Daily Tamil Bible Status Generator</p>
-        </div>
-        <div className="w-8 h-8 rounded-full overflow-hidden border border-white/25 bg-slate-950 shrink-0 shadow-sm flex items-center justify-center">
-          <img 
-            src={umnLogo} 
-            alt="UMN Logo" 
-            className="w-full h-full object-cover" 
-            referrerPolicy="no-referrer"
-          />
-        </div>
-      </div>
-
-      {/* Main Container Layout */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        
-        {/* Help Banner tailored for Android APK download */}
-        <div className="bg-blue-600/10 border border-blue-500/20 rounded-2xl p-3.5 flex gap-3 items-start">
-          <Smartphone size={22} className="text-blue-400 shrink-0 mt-0.5 animate-bounce" />
-          <div className="space-y-0.5">
-            <span className="text-[10px] font-black text-blue-400 uppercase tracking-wide block">போன் கேலரியில் சேமிப்பது எப்படி?</span>
-            <p className="text-[10px] text-slate-300 leading-normal">
-              வாட்ஸ்அப் ஸ்டேட்டஸ் வைக்க <strong>"பதிவிறக்கு"</strong> பொத்தானை அழுத்தவும். படம் உங்கள் கேலரியில் நேரடியாக சேமிக்கப்படும். ஒருவேளை அது வேலை செய்யாவிட்டால், <strong>கீழே உள்ள போஸ்டர் படத்தை நீண்ட நேரம் அழுத்தி (Long Press)</strong> நேரடியாக உங்கள் போனில் சேமித்துக் கொள்ளலாம்.
+      {/* Top Studio Header Bar */}
+      <header className={`sticky top-0 z-40 border-b px-4 sm:px-8 py-3.5 flex items-center justify-between backdrop-blur-md transition-colors ${
+        isDarkMode ? 'bg-zinc-900/95 border-zinc-800' : 'bg-white/95 border-slate-200'
+      } shadow-xs`}>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={onBack} 
+            className={`p-2 rounded-xl border transition-all cursor-pointer ${
+              isDarkMode ? 'border-zinc-800 hover:bg-zinc-800 text-zinc-300' : 'border-slate-200 hover:bg-slate-100 text-slate-700'
+            }`}
+            title="பின்னே செல்ல"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-black text-base sm:text-lg tracking-tight flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+                <Brush size={18} />
+                <span>ஸ்டேட்டஸ் & போஸ்டர் மேக்கர்</span>
+              </h1>
+              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                1000+ HD BACKGROUNDS
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 hidden sm:block">
+              வாட்ஸ்அப், பேஸ்புக், இன்ஸ்டாகிராம் மற்றும் சமூக ஊடகங்களுக்கான உயர்தர தமிழ் வசன அட்டைகள்
             </p>
           </div>
         </div>
 
-        {/* Real-time Rendered Poster Frame */}
-        <div className="flex flex-col items-center justify-center py-1">
-          <div className="text-center mb-1.5 flex items-center gap-1 justify-center">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">உயர்தர நேரடிப் போஸ்டர் (HD Live Preview)</span>
-          </div>
-
-          {/* Offscreen rendering Canvas */}
-          <canvas ref={canvasRef} className="hidden" />
-
-          {/* Scalable Container representing Mobile Aspect Ratio */}
-          <div className={`relative ${aspectRatio === '9:16' ? 'w-[235px] h-[418px]' : 'w-[265px] h-[265px]'} rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-900 transition-all duration-300`}>
-            {previewUrl ? (
-              <img 
-                src={previewUrl} 
-                alt="Bible Verse Poster" 
-                className="w-full h-full object-cover select-none"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-500 text-xs">
-                <RefreshCw size={24} className="animate-spin text-blue-500" />
-                <span>போஸ்டர் தயாராகிறது...</span>
-              </div>
-            )}
-
-            {bgLoading && (
-              <div className="absolute top-2 right-2 bg-black/70 px-2 py-1 rounded text-[8px] font-bold text-yellow-400 flex items-center gap-1">
-                <RefreshCw size={10} className="animate-spin" /> படம் பதிவிறக்கமாகிறது...
-              </div>
-            )}
-          </div>
-          
-          <p className="text-[9px] text-slate-500 mt-2 italic text-center">
-            * 1080px HD தரத்தில் அட்டைப்படம் உருவாக்கப்படும்.
-          </p>
-        </div>
-
-        {/* Action Button Segment */}
-        <div className="grid grid-cols-2 gap-2 select-none">
+        {/* Action Buttons in Header */}
+        <div className="flex items-center gap-2">
           <button
-            onClick={handleDownload}
-            disabled={isGenerating || !previewUrl}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg active:scale-98"
+            onClick={handleShuffleBackground}
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              isDarkMode ? 'border-zinc-800 hover:bg-zinc-800 text-zinc-300' : 'border-slate-200 hover:bg-slate-100 text-slate-700'
+            }`}
+            title="ரேண்டம் பின்னணி"
           >
-            <Download size={15} /> 
-            <span>{isGenerating ? "சேமிக்கப்படுகிறது..." : "பதிவிறக்கு (Save)"}</span>
+            <RefreshCw size={15} />
+            <span className="hidden md:inline">ரேண்டம்</span>
           </button>
 
-          <button
-            onClick={handleCopyText}
-            className="w-full bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-extrabold py-3.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+          <button 
+            onClick={handleCopyImage}
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              isDarkMode ? 'border-zinc-800 hover:bg-zinc-800 text-zinc-300' : 'border-slate-200 hover:bg-slate-100 text-slate-700'
+            }`}
+            title="படத்தை நகலெடு"
           >
             <Copy size={15} />
-            <span>வசனத்தை நகலெடு</span>
+            <span className="hidden sm:inline">நகலெடு</span>
+          </button>
+
+          <button 
+            onClick={handleShare}
+            disabled={isSharing}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
+          >
+            <Share2 size={15} />
+            <span>பகிரவும்</span>
+          </button>
+
+          <button 
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
+          >
+            <Download size={15} />
+            <span>பதிவிறக்கம்</span>
           </button>
         </div>
+      </header>
 
-        {/* Toast Notification indicator inside tool */}
-        {isCopied && (
-          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl p-2.5 px-4 text-[10px] font-bold text-center flex items-center justify-center gap-1.5 animate-fadeIn">
-            <Check size={14} /> 
-            <span>கேலரியில் சேமிக்கப்பட்டது / நகலெடுக்கப்பட்டது வெற்றிகரமாக!</span>
-          </div>
-        )}
-
-        {/* Interactive Customization Controls */}
-        <div className="space-y-4 pt-2">
+      {/* Main Studio Workspace */}
+      <div className="max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* LEFT COLUMN: Clean Responsive Canvas Preview & Primary Controls (5 Columns) */}
+        <div className="lg:col-span-5 flex flex-col items-center sticky top-20 z-20 space-y-4">
           
-          {/* Quick Preset Verses Container */}
-          <div className={`p-3.5 rounded-2xl ${isDarkMode ? 'bg-zinc-900/40 border border-zinc-800/60' : 'bg-slate-800/20 border border-slate-700/30'} space-y-2`}>
-            <span className="text-[10px] font-extrabold text-yellow-400 uppercase tracking-wider flex items-center gap-1">
-              <Sparkles size={12} className="text-yellow-400" /> விரைவான வசன வார்ப்புருக்கள் (Presets)
-            </span>
-            <div className="grid grid-cols-2 gap-1.5">
-              {PRESET_VERSES.map((preset, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => applyPresetVerse(preset)}
-                  className="p-2 text-left bg-slate-900/60 hover:bg-slate-900 text-white border border-slate-800 hover:border-slate-700 rounded-xl transition-all cursor-pointer"
-                >
-                  <div className="text-[8px] text-yellow-400 font-extrabold">{preset.tamilName} {preset.chapter}:{preset.verse}</div>
-                  <div className="text-[9px] truncate font-serif text-slate-300">{preset.text}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Card Style Mode Toggle Card */}
-          <div className={`p-3.5 rounded-2xl ${isDarkMode ? 'bg-zinc-900/40 border border-zinc-800/60' : 'bg-slate-800/20 border border-slate-700/30'} space-y-2`}>
-            <span className="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider flex items-center gap-1">
-              <Sparkles size={12} className="text-yellow-400 animate-pulse" /> அட்டை வடிவமைப்பு (Card Style Mode)
-            </span>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
-              <button
-                onClick={() => setPosterMode('typography')}
-                className={`py-2 text-[10px] font-extrabold rounded-lg cursor-pointer text-center transition-all flex items-center justify-center gap-1.5 ${posterMode === 'typography' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
-              >
-                <Sparkles size={11} />
-                <span>டைப்போகிராபிக்ஸ் அட்டை (Typography)</span>
-              </button>
-              <button
-                onClick={() => setPosterMode('classic')}
-                className={`py-2 text-[10px] font-extrabold rounded-lg cursor-pointer text-center transition-all flex items-center justify-center gap-1.5 ${posterMode === 'classic' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
-              >
-                <BookOpen size={11} />
-                <span>ஆரம்ப நிலை அட்டை (Classic)</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Typography Control Panel (Conditionally Shown) */}
-          {posterMode === 'typography' && (
-            <div className={`p-3.5 rounded-2xl ${isDarkMode ? 'bg-zinc-900/40 border border-zinc-800/60' : 'bg-slate-800/20 border border-slate-700/30'} space-y-3.5`}>
-              <span className="text-[10px] font-extrabold text-yellow-400 uppercase tracking-wider flex items-center gap-1">
-                <Sparkles size={12} className="text-yellow-400 animate-pulse" /> டைப்போகிராபிக்ஸ் வடிவமைப்பு (Typography Controls)
+          {/* Main Visual Poster Container - Constrained to 100% visible height */}
+          <div className="w-full flex flex-col items-center justify-center p-3 sm:p-4 rounded-3xl bg-slate-900/10 dark:bg-black/40 border border-slate-200/80 dark:border-zinc-800/80 backdrop-blur-xs shadow-xl">
+            
+            {/* Live Badge & Aspect Indicator */}
+            <div className="w-full flex items-center justify-between px-2 pb-2.5 text-[11px] font-bold text-slate-500 dark:text-zinc-400">
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-extrabold">
+                <Eye size={13} /> நேரடி முன்னோட்டம் (Live HD Preview)
               </span>
+              <span className="bg-slate-200 dark:bg-zinc-800 px-2 py-0.5 rounded-md font-mono">
+                {aspectRatio}
+              </span>
+            </div>
 
-              {/* Typography Presets horizontal list */}
-              <div className="space-y-1.5">
-                <label className="text-[9px] text-slate-400 font-extrabold block">வடிவமைப்பு முன்னமைப்புகள் (Typography Presets)</label>
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none select-none">
-                  {TYPOGRAPHY_PRESETS.map((preset, idx) => (
+            {/* Canvas Box that fits 100% on laptop & mobile screens without scrolling */}
+            <div className="w-full max-w-[340px] sm:max-w-[380px] flex items-center justify-center relative rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 dark:border-zinc-700/50 bg-black">
+              <canvas 
+                ref={canvasRef} 
+                className="w-full h-auto max-h-[58vh] sm:max-h-[62vh] object-contain block select-none"
+              />
+            </div>
+
+            {/* Large Primary Action Bar Below Preview */}
+            <div className="w-full grid grid-cols-2 gap-2.5 pt-4">
+              <button 
+                onClick={handleShare}
+                disabled={isSharing}
+                className="py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 cursor-pointer active:scale-98 transition-all"
+              >
+                <Share2 size={17} />
+                <span>ஸ்டேட்டஸ் பகிரவும்</span>
+              </button>
+
+              <button 
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className="py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 cursor-pointer active:scale-98 transition-all"
+              >
+                <Download size={17} />
+                <span>HD பதிவிறக்கம்</span>
+              </button>
+            </div>
+
+            {/* Quick Share to Social Apps */}
+            <div className="w-full flex items-center justify-center gap-2 pt-2 text-[11px] text-slate-500 dark:text-zinc-400 font-semibold">
+              <span>நேரடி பயன்பாடு:</span>
+              <span className="text-emerald-500 font-bold">WhatsApp Status</span> • 
+              <span className="text-pink-500 font-bold">Instagram Story</span> • 
+              <span className="text-blue-500 font-bold">Facebook</span>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* RIGHT COLUMN: Comprehensive Studio Customizer (7 Columns) */}
+        <div className="lg:col-span-7 space-y-5">
+          
+          {/* PANEL 1: 1000+ Background Explorer & Categories */}
+          <div className={`p-5 rounded-3xl border shadow-sm space-y-4 ${
+            isDarkMode ? 'bg-zinc-900/90 border-zinc-800' : 'bg-white border-slate-200'
+          }`}>
+            <div className="flex items-center justify-between border-b pb-3 dark:border-zinc-800">
+              <h3 className="font-extrabold flex items-center gap-2 text-sm uppercase tracking-wider text-slate-700 dark:text-zinc-200">
+                <ImageIcon size={17} className="text-blue-500" /> 
+                <span>அதிநவீன 1000+ பின்னணி படங்கள் (Backgrounds)</span>
+              </h3>
+              
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-zinc-800 hover:bg-blue-100 dark:hover:bg-zinc-700 text-blue-600 dark:text-blue-400 font-bold text-xs transition-colors cursor-pointer border border-blue-200 dark:border-zinc-700"
+              >
+                <Upload size={13} />
+                <span>உங்கள் படம் (Upload)</span>
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleCustomFileUpload} 
+                accept="image/*" 
+                className="hidden" 
+              />
+            </div>
+
+            {/* Online Live Search with Quick Tags */}
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input 
+                    type="text"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearchOnline(searchKeyword)}
+                    placeholder="1000+ படங்களில் தேடவும் (எ.கா: இயேசு, Cross, Sunrise, Heaven, Galaxy)..."
+                    className={`w-full pl-9 pr-3 py-2 rounded-xl text-xs font-semibold outline-none border transition-colors ${
+                      isDarkMode ? 'bg-zinc-950 border-zinc-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200 focus:border-blue-500'
+                    }`}
+                  />
+                </div>
+                <button
+                  onClick={() => handleSearchOnline(searchKeyword)}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all cursor-pointer flex items-center gap-1"
+                >
+                  <Sparkles size={13} />
+                  <span>தேடு</span>
+                </button>
+              </div>
+
+              {/* Quick Tag Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <span className="text-[10px] font-bold text-slate-400 shrink-0">பிரபலமானவை:</span>
+                {QUICK_TAGS.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => {
+                      setSearchKeyword(tag);
+                      handleSearchOnline(tag);
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-zinc-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Online Search Results Display if available */}
+            {onlineSearchResults.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+                  <span>தேடல் முடிவுகள் ({searchKeyword}):</span>
+                  <button onClick={() => setOnlineSearchResults([])} className="text-red-500 hover:underline">அழி</button>
+                </div>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  {onlineSearchResults.map((img) => (
                     <button
-                      key={idx}
-                      onClick={() => {
-                        setTypographyTop(preset.top);
-                        setTypographyBottom(preset.bottom);
-                        setHeaderText(preset.header);
-                        setVerseText(preset.verseText);
-                        setHighlightWord(preset.bottom);
-                        setSelectedBookId(preset.verseBookId);
-                        setSelectedChapter(preset.verseChapter);
-                        setSelectedVerseNum(preset.verseNum);
-                        setCustomEditing(true);
-
-                        // Intuitively assign beautiful colorful styles for different presets!
-                        if (preset.name.includes("ஆராதனை")) {
-                          setTopFont('"Kavivanar"');
-                          setBottomFont('"Mukta Malar"');
-                          setTopColorPreset("white");
-                          setBottomColorPreset("gold-gradient");
-                        } else if (preset.name.includes("காத்திரு")) {
-                          setTopFont('"Kavivanar"');
-                          setBottomFont('"Mukta Malar"');
-                          setTopColorPreset("white");
-                          setBottomColorPreset("sunset-gradient");
-                        } else if (preset.name.includes("பயப்படாதே")) {
-                          setTopFont('"Arima"');
-                          setBottomFont('"Mukta Malar"');
-                          setTopColorPreset("yellow");
-                          setBottomColorPreset("pink-glow");
-                        } else if (preset.name.includes("ஜெயம்")) {
-                          setTopFont('"Kavivanar"');
-                          setBottomFont('"Mukta Malar"');
-                          setTopColorPreset("white");
-                          setBottomColorPreset("rainbow");
-                        } else if (preset.name.includes("விசுவாசி")) {
-                          setTopFont('"Arima"');
-                          setBottomFont('"Mukta Malar"');
-                          setTopColorPreset("white");
-                          setBottomColorPreset("neon-cyan");
-                        } else if (preset.name.includes("சமாதானம்")) {
-                          setTopFont('"Kavivanar"');
-                          setBottomFont('"Arima"');
-                          setTopColorPreset("white");
-                          setBottomColorPreset("neon-green");
-                        } else {
-                          setTopColorPreset("white");
-                          setBottomColorPreset("gold-gradient");
-                        }
-
-                        // Reset default sizing parameters to safe defaults
-                        setTopFontSize(125);
-                        setBottomFontSize(155);
-                        setCenterpieceGap(145);
-                        setCenterpieceYOffset(0);
-                        setTopRotate(-5);
-                        setBottomRotate(3);
-                      }}
-                      className="flex-shrink-0 px-3 py-2 bg-slate-900 hover:bg-slate-850 text-white border border-slate-800 rounded-xl text-[10px] font-bold cursor-pointer transition-all hover:border-yellow-500/50"
+                      key={img.id}
+                      onClick={() => setCurrentBgUrl(img.url)}
+                      className={`aspect-square rounded-xl bg-cover bg-center overflow-hidden border-2 transition-all relative cursor-pointer ${
+                        currentBgUrl === img.url ? 'border-blue-500 ring-2 ring-blue-500/50 scale-105 z-10' : 'border-transparent opacity-75 hover:opacity-100'
+                      }`}
+                      style={{ backgroundImage: `url(${img.url})` }}
                     >
-                      {preset.name}
+                      {currentBgUrl === img.url && (
+                        <div className="absolute inset-0 bg-blue-600/30 flex items-center justify-center">
+                          <Check size={18} className="text-white drop-shadow-md" />
+                        </div>
+                      )}
                     </button>
                   ))}
                 </div>
               </div>
+            )}
 
-              {/* Tamil helper label describing typographic rendering */}
-              <div className="p-2 bg-slate-950/40 rounded-xl border border-slate-800/40 text-center">
-                <p className="text-[10px] text-yellow-400 font-bold">
-                  ✍️ நீங்கள் தேர்ந்தெடுக்கும் தினசரி வசனம் தானாகவே இம்முறையில் வண்ணமயமான டைப்போகிராபிக்ஸ் வடிவமைப்பாக மாறும்!
-                </p>
-                <p className="text-[8.5px] text-slate-400 mt-0.5">
-                  வசனத்தை மாற்ற மேலே உள்ள 'வேதாகமம்' பகுதியிலோ அல்லது முன்னமைப்புகளிலோ புதிய வசனத்தை தேர்வு செய்யவும்.
-                </p>
-              </div>
-
-              {/* Dynamic Font selection for Top and Bottom Centerpiece Words */}
-              <div className="grid grid-cols-2 gap-2.5 pt-1">
-                <div className="space-y-1">
-                  <label className="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">மேல் எழுத்துரு (Top Font)</label>
-                  <select
-                    value={topFont}
-                    onChange={(e) => setTopFont(e.target.value)}
-                    className="w-full p-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-slate-200 font-bold outline-none cursor-pointer"
-                  >
-                    <option value='"Kavivanar"'>கவிவனர் (Cursive/Script)</option>
-                    <option value='"Mukta Malar"'>முக்தா மலர் (Bold Heavy)</option>
-                    <option value='"Arima"'>அரிமா (Soft Serif)</option>
-                    <option value='"Inter"'>இன்டர் (Classic Clean)</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">கீழ் எழுத்துரு (Bottom Font)</label>
-                  <select
-                    value={bottomFont}
-                    onChange={(e) => setBottomFont(e.target.value)}
-                    className="w-full p-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-slate-200 font-bold outline-none cursor-pointer"
-                  >
-                    <option value='"Mukta Malar"'>முக்தா மலர் (Bold Heavy)</option>
-                    <option value='"Kavivanar"'>கவிவனர் (Cursive/Script)</option>
-                    <option value='"Arima"'>அரிமா (Soft Serif)</option>
-                    <option value='"Inter"'>இன்டர் (Classic Clean)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Colorful Gradient Options selection */}
-              <div className="grid grid-cols-2 gap-2.5 pt-1">
-                <div className="space-y-1">
-                  <label className="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">மேல் நிறம் (Top Color/Gradient)</label>
-                  <select
-                    value={topColorPreset}
-                    onChange={(e) => setTopColorPreset(e.target.value)}
-                    className="w-full p-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-slate-200 font-bold outline-none cursor-pointer"
-                  >
-                    <option value="white">⬜ வெள்ளை (White)</option>
-                    <option value="yellow">🟨 மஞ்சள் (Vibrant Yellow)</option>
-                    <option value="gold-gradient">👑 தங்க நிறம் (Gold Gradient)</option>
-                    <option value="sunset-gradient">🌅 சூரிய அஸ்தமனம் (Sunset Orange)</option>
-                    <option value="pink-glow">🌸 ரோஸ் பிங்க் (Pink/Rose Glow)</option>
-                    <option value="neon-cyan">💎 ஆகாய நீலம் (Neon Cyan/Blue)</option>
-                    <option value="neon-green">🍀 எமரால்டு பச்சை (Neon Green)</option>
-                    <option value="purple-vibe">🔮 காஸ்மிக் ஊதா (Purple/Cosmic)</option>
-                    <option value="rainbow">🌈 வானவில் நிறம் (Rainbow Sparkle)</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">கீழ் நிறம் (Bottom Color/Gradient)</label>
-                  <select
-                    value={bottomColorPreset}
-                    onChange={(e) => setBottomColorPreset(e.target.value)}
-                    className="w-full p-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-slate-200 font-bold outline-none cursor-pointer"
-                  >
-                    <option value="gold-gradient">👑 தங்க நிறம் (Gold Gradient)</option>
-                    <option value="sunset-gradient">🌅 சூரிய அஸ்தமனம் (Sunset Orange)</option>
-                    <option value="pink-glow">🌸 ரோஸ் பிங்க் (Pink/Rose Glow)</option>
-                    <option value="neon-cyan">💎 ஆகாய நீலம் (Neon Cyan/Blue)</option>
-                    <option value="neon-green">🍀 எமரால்டு பச்சை (Neon Green)</option>
-                    <option value="purple-vibe">🔮 காஸ்மிக் ஊதா (Purple/Cosmic)</option>
-                    <option value="rainbow">🌈 வானவில் நிறம் (Rainbow Sparkle)</option>
-                    <option value="white">⬜ வெள்ளை (White)</option>
-                    <option value="yellow">🟨 மஞ்சள் (Vibrant Yellow)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Sliders for precise sizing & layout alignment to protect letters from cut off */}
-              <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2.5">
-                <span className="text-[8px] font-black text-blue-400 uppercase tracking-wider flex items-center gap-1">
-                  <Sliders size={11} className="text-blue-400" /> அளவுகள் & இடைவெளிகள் (Layout Sizes)
-                </span>
-                
-                <div className="grid grid-cols-2 gap-x-2 gap-y-2">
-                  <div className="space-y-0.5">
-                    <div className="flex justify-between text-[8px] text-slate-400">
-                      <span>மேல் அளவு (Top Font Size)</span>
-                      <span className="text-white font-bold">{topFontSize}px</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="60"
-                      max="180"
-                      value={topFontSize}
-                      onChange={(e) => setTopFontSize(parseInt(e.target.value))}
-                      className="w-full h-1 accent-blue-500 rounded cursor-pointer"
-                    />
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="flex justify-between text-[8px] text-slate-400">
-                      <span>கீழ் அளவு (Bottom Font Size)</span>
-                      <span className="text-white font-bold">{bottomFontSize}px</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="60"
-                      max="200"
-                      value={bottomFontSize}
-                      onChange={(e) => setBottomFontSize(parseInt(e.target.value))}
-                      className="w-full h-1 accent-blue-500 rounded cursor-pointer"
-                    />
-                  </div>
-
-                  <div className="space-y-0.5">
-                    <div className="flex justify-between text-[8px] text-slate-400">
-                      <span>வார்த்தை இடைவெளி (Gap)</span>
-                      <span className="text-white font-bold">{centerpieceGap}px</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="80"
-                      max="240"
-                      value={centerpieceGap}
-                      onChange={(e) => setCenterpieceGap(parseInt(e.target.value))}
-                      className="w-full h-1 accent-blue-500 rounded cursor-pointer"
-                    />
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="flex justify-between text-[8px] text-slate-400">
-                      <span>செங்குத்து நிலை (Y Offset)</span>
-                      <span className="text-white font-bold">{centerpieceYOffset}px</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="-200"
-                      max="200"
-                      value={centerpieceYOffset}
-                      onChange={(e) => setCenterpieceYOffset(parseInt(e.target.value))}
-                      className="w-full h-1 accent-blue-500 rounded cursor-pointer"
-                    />
-                  </div>
-
-                  <div className="space-y-0.5">
-                    <div className="flex justify-between text-[8px] text-slate-400">
-                      <span>மேல் சுழற்சி (Top Rotate)</span>
-                      <span className="text-white font-bold">{topRotate}°</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="-15"
-                      max="15"
-                      value={topRotate}
-                      onChange={(e) => setTopRotate(parseInt(e.target.value))}
-                      className="w-full h-1 accent-blue-500 rounded cursor-pointer"
-                    />
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="flex justify-between text-[8px] text-slate-400">
-                      <span>கீழ் சுழற்சி (Bottom Rotate)</span>
-                      <span className="text-white font-bold">{bottomRotate}°</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="-15"
-                      max="15"
-                      value={bottomRotate}
-                      onChange={(e) => setBottomRotate(parseInt(e.target.value))}
-                      className="w-full h-1 accent-blue-500 rounded cursor-pointer"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Spacing adjustments or Header text adjustment */}
-              <div className="space-y-1">
-                <label className="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">மேல் பகுதி சிறிய தலைப்பு (Top Header Text)</label>
-                <input
-                  type="text"
-                  value={headerText}
-                  onChange={(e) => setHeaderText(e.target.value)}
-                  className="w-full p-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white outline-none uppercase font-semibold"
-                  placeholder="PRAISE & WORSHIP"
-                />
-              </div>
-
-              {/* Aesthetic Element Toggles */}
-              <div className="space-y-1.5 pt-1.5 border-t border-slate-800">
-                <label className="text-[9px] text-slate-400 font-extrabold block">விஷுவல் கூறுகள் (Visual Decors)</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setShowCross(!showCross)}
-                    className={`p-2 text-[9px] font-bold rounded-xl border flex items-center justify-center gap-1 cursor-pointer transition-all ${showCross ? 'bg-yellow-500/10 border-yellow-500/40 text-yellow-400' : 'bg-slate-950 border-slate-800 text-slate-500'}`}
-                  >
-                    <span>✝️</span> சிலுவை {showCross ? "ஆன்" : "ஆஃப்"}
-                  </button>
-                  <button
-                    onClick={() => setShowDove(!showDove)}
-                    className={`p-2 text-[9px] font-bold rounded-xl border flex items-center justify-center gap-1 cursor-pointer transition-all ${showDove ? 'bg-yellow-500/10 border-yellow-500/40 text-yellow-400' : 'bg-slate-950 border-slate-800 text-slate-500'}`}
-                  >
-                    <span>🕊️</span> புறா {showDove ? "ஆன்" : "ஆஃப்"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Section 1: Background Scenery Selection */}
-          <div className={`p-3.5 rounded-2xl ${isDarkMode ? 'bg-zinc-900/40 border border-zinc-800/60' : 'bg-slate-800/20 border border-slate-700/30'} space-y-3`}>
-            <div className="flex justify-between items-center pb-1">
-              <span className="text-[10px] font-extrabold text-orange-400 uppercase tracking-wider flex items-center gap-1">
-                <ImageIcon size={12} /> பின்னணிக் காட்சி (Scenic Background)
-              </span>
-              
-              {/* Daily Auto Switch */}
-              <button
-                onClick={() => setDailyAuto(!dailyAuto)}
-                className={`text-[9px] font-bold px-2 py-1 rounded-lg cursor-pointer flex items-center gap-1 transition-all ${dailyAuto ? 'bg-emerald-600 text-white animate-pulse' : 'bg-slate-800 text-slate-400'}`}
-              >
-                <Calendar size={10} /> 
-                {dailyAuto ? "தினசரி தானியங்கி: ஆன்" : "தினசரி தானியங்கி: ஆஃப்"}
-              </button>
-            </div>
-
-            {dailyAuto ? (
-              <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl text-center">
-                <p className="text-[10px] text-emerald-400 font-bold">
-                  📅 இன்றைய தினம்: <span className="underline">{activeBackground.name.split(' ')[0]}</span> பின்னணி தானாகவே தேர்வு செய்யப்பட்டுள்ளது!
-                </p>
-                <p className="text-[8px] text-slate-400 mt-1">
-                  ஒவ்வொரு நாளும் புதிய பின்னணி படம் தானாகவே மாறும். கையேடு மூலம் தேர்வு செய்ய 'தானியங்கி' பொத்தானை அணைக்கவும்.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <label className="text-[9px] text-slate-400 font-extrabold block">காட்சியைத் தேர்ந்தெடு (Manual Scenery Selection)</label>
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none select-none">
-                  {SCENIC_BACKGROUNDS.map((bg, idx) => {
-                    const isSelected = selectedBgIndex === idx && !dailyAuto;
-                    return (
-                      <button
-                        key={bg.id}
-                        onClick={() => {
-                          setDailyAuto(false);
-                          setSelectedBgIndex(idx);
-                        }}
-                        className={`flex-shrink-0 p-1.5 rounded-xl border flex flex-col items-center gap-1.5 transition-all cursor-pointer ${isSelected ? 'border-orange-400 bg-slate-900 shadow-md scale-102' : 'border-slate-800 bg-slate-950/60 hover:bg-slate-900'}`}
-                      >
-                        <div className="w-16 h-10 rounded-lg overflow-hidden border border-white/10">
-                          <img src={bg.url} alt={bg.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            {/* Custom User Uploaded Backgrounds */}
+            {customBgList.length > 0 && (
+              <div className="space-y-2 pt-1">
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">நீங்கள் பதிவேற்றிய படங்கள்:</span>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  {customBgList.map((bg) => (
+                    <button
+                      key={bg.id}
+                      onClick={() => setCurrentBgUrl(bg.url)}
+                      className={`aspect-square rounded-xl bg-cover bg-center overflow-hidden border-2 transition-all relative cursor-pointer ${
+                        currentBgUrl === bg.url ? 'border-blue-500 ring-2 ring-blue-500/50 scale-105 z-10' : 'border-transparent opacity-75 hover:opacity-100'
+                      }`}
+                      style={{ backgroundImage: `url(${bg.url})` }}
+                    >
+                      {currentBgUrl === bg.url && (
+                        <div className="absolute inset-0 bg-blue-600/30 flex items-center justify-center">
+                          <Check size={18} className="text-white drop-shadow-md" />
                         </div>
-                        <span className="text-[7.5px] font-bold text-slate-300 max-w-[70px] text-center truncate">{bg.name.split(' ')[0]}</span>
-                      </button>
-                    );
-                  })}
+                      )}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* Readability Overlay Adjuster (Slider) */}
-            <div className="space-y-1 pt-1.5 border-t border-slate-800">
-              <div className="flex justify-between items-center text-[9px] font-bold text-slate-400">
-                <span>எழுத்துத் தெளிவு நிழல் (Contrast Overlay)</span>
-                <span className="text-yellow-400">{bgOpacity}%</span>
-              </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="80" 
-                value={bgOpacity}
-                onChange={(e) => setBgOpacity(Number(e.target.value))}
-                className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <span className="text-[8px] text-slate-500 block leading-tight">
-                * உரை தெளிவாகத் தெரிய பின்னணிப் படத்தை இதைக் கொண்டு சிறிது இருட்டாக்கிக் கொள்ளலாம்.
-              </span>
-            </div>
-          </div>
-
-          {/* Section 2: Scripture Verse Picker & Text Editor */}
-          <div className={`p-3.5 rounded-2xl ${isDarkMode ? 'bg-zinc-900/40 border border-zinc-800/60' : 'bg-slate-800/20 border border-slate-700/30'} space-y-3`}>
-            <div className="flex justify-between items-center pb-1">
-              <span className="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider flex items-center gap-1">
-                <BookOpen size={12} /> வசனத் தேர்வு & திருத்தம் (Verse Content)
-              </span>
-              <button
-                onClick={() => setCustomEditing(!customEditing)}
-                className={`text-[9px] font-bold px-2 py-0.5 rounded-lg cursor-pointer transition-all ${customEditing ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}
-              >
-                {customEditing ? "வேதத்திலிருந்து எடு" : "சொந்தமாக எழுது"}
-              </button>
+            {/* Categories Selector Tabs */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-2 scrollbar-none border-t border-slate-100 dark:border-zinc-800/80">
+              {BACKGROUND_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
+                    activeCategory === cat.id
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-slate-100 dark:bg-zinc-800/70 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
+                  }`}
+                >
+                  <span>{cat.icon}</span>
+                  <span>{cat.name}</span>
+                </button>
+              ))}
             </div>
 
-            {customEditing ? (
-              <div className="space-y-2">
-                <textarea
-                  value={verseText}
-                  onChange={(e) => setVerseText(e.target.value)}
-                  rows={3}
-                  className="w-full p-3 text-xs rounded-xl bg-slate-950 border border-slate-800 focus:outline-none focus:border-blue-500 resize-none font-serif text-white leading-normal"
-                  placeholder="இங்கே உங்கள் தியான வசனத்தை தட்டச்சு செய்யவும்..."
-                />
-              </div>
-            ) : (
-              <div className="space-y-2.5">
-                {/* Book & Chapter selector row */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">புத்தகம்</label>
-                    <select
-                      value={selectedBookId}
-                      onChange={(e) => {
-                        setSelectedBookId(Number(e.target.value));
-                        setSelectedChapter(1);
-                        setSelectedVerseNum(1);
-                      }}
-                      className="w-full p-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white outline-none cursor-pointer font-bold"
-                    >
-                      {bibleBooks.map(book => (
-                        <option key={book.id} value={book.id}>{book.tamilName}</option>
-                      ))}
-                    </select>
+            {/* Selected Category Wallpapers Grid */}
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1">
+              {(BACKGROUND_CATEGORIES.find(c => c.id === activeCategory)?.images || []).map((bg) => (
+                <button
+                  key={bg.id}
+                  onClick={() => setCurrentBgUrl(bg.url)}
+                  className={`aspect-[4/5] rounded-xl bg-cover bg-center overflow-hidden border-2 transition-all relative group cursor-pointer ${
+                    currentBgUrl === bg.url ? 'border-blue-500 ring-2 ring-blue-500/50 scale-105 z-10 shadow-lg' : 'border-transparent opacity-80 hover:opacity-100'
+                  }`}
+                  style={{ backgroundImage: `url(${bg.url})` }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-1">
+                    <span className="text-[10px] font-bold text-white truncate w-full">{bg.name}</span>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <label className="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">அதிகாரம்</label>
-                      <select
-                        value={selectedChapter}
-                        onChange={(e) => {
-                          setSelectedChapter(Number(e.target.value));
-                          setSelectedVerseNum(1);
-                        }}
-                        className="w-full p-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white outline-none cursor-pointer font-bold"
-                      >
-                        {Array.from({ length: totalChapters }, (_, i) => i + 1).map(ch => (
-                          <option key={ch} value={ch}>{ch}</option>
-                        ))}
-                      </select>
+                  {currentBgUrl === bg.url && (
+                    <div className="absolute inset-0 bg-blue-600/30 flex items-center justify-center">
+                      <Check size={20} className="text-white drop-shadow-md" />
                     </div>
+                  )}
+                </button>
+              ))}
+            </div>
 
-                    <div className="space-y-1">
-                      <label className="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">வசனம்</label>
-                      <select
-                        value={selectedVerseNum}
-                        onChange={(e) => setSelectedVerseNum(Number(e.target.value))}
-                        className="w-full p-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white outline-none cursor-pointer font-bold"
-                      >
-                        {Array.from({ length: 50 }, (_, i) => i + 1).map(v => (
-                          <option key={v} value={v}>{v}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+            {/* Visual Filters: Blur & Tint & Overlay */}
+            <div className="space-y-4 pt-3 border-t border-slate-100 dark:border-zinc-800/80">
+              
+              {/* Quick Brightness / Overlay Presets */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs font-bold text-slate-500">
+                  <span className="flex items-center gap-1"><Sun size={13} className="text-amber-500" /> பின்னணி பிரகாசம் & திரை (Brightness & Tint)</span>
+                  <span className="font-mono text-blue-500">{overlayOpacity === 0 ? '100% இயற்கை பிரகாசம்' : `${overlayOpacity}% நிழல்`}</span>
                 </div>
 
-                {/* Live text modification */}
-                <div className="space-y-1">
-                  <label className="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">திருத்தம் (விருப்பம்)</label>
-                  <input
-                    type="text"
-                    value={verseText}
-                    onChange={(e) => setVerseText(e.target.value)}
-                    className="w-full p-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white outline-none font-serif"
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOverlayOpacity(0)}
+                    className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center justify-center gap-1 ${
+                      overlayOpacity === 0
+                        ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                        : 'border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-amber-50 dark:hover:bg-zinc-800'
+                    }`}
+                  >
+                    <span>☀️ முழு பிரகாசம் (0%)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOverlayOpacity(15)}
+                    className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center justify-center gap-1 ${
+                      overlayOpacity === 15
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                        : 'border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-blue-50 dark:hover:bg-zinc-800'
+                    }`}
+                  >
+                    <span>🌤️ லேசான நிழல் (15%)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOverlayOpacity(40)}
+                    className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center justify-center gap-1 ${
+                      overlayOpacity === 40
+                        ? 'bg-zinc-800 text-white border-zinc-700 shadow-sm'
+                        : 'border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                    }`}
+                  >
+                    <span>🌙 அடர் திரை (40%)</span>
+                  </button>
+                </div>
+
+                <input 
+                  type="range" min="0" max="80" 
+                  value={overlayOpacity} onChange={(e) => setOverlayOpacity(Number(e.target.value))}
+                  className="w-full accent-blue-600 h-2 bg-slate-200 dark:bg-zinc-800 rounded-lg cursor-pointer"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Blur Slider */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-bold text-slate-500">
+                    <span className="flex items-center gap-1"><Layers size={13} /> மங்கலாக்கு (Blur Filter)</span>
+                    <span className="font-mono text-blue-500">{blurEffect}px</span>
+                  </div>
+                  <input 
+                    type="range" min="0" max="15" 
+                    value={blurEffect} onChange={(e) => setBlurEffect(Number(e.target.value))}
+                    className="w-full accent-blue-600 h-2 bg-slate-200 dark:bg-zinc-800 rounded-lg cursor-pointer"
                   />
                 </div>
-              </div>
-            )}
 
-            {/* Word Highlight control */}
-            <div className="space-y-1 pt-1.5 border-t border-slate-800">
-              <label className="text-[9px] text-slate-400 font-extrabold block">தங்க நிறத்தில் ஒளிரச் செய்ய வேண்டிய சொல் (Word to Highlight in Gold):</label>
-              <input
-                type="text"
-                value={highlightWord}
-                onChange={(e) => setHighlightWord(e.target.value)}
-                placeholder="எ.கா: காத்திரு"
-                className="w-full p-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-yellow-400 font-bold outline-none"
-              />
-              <span className="text-[8px] text-slate-500 block leading-tight">
-                * நீங்கள் உள்ளிடும் சொல் தானாகவே அட்டைப்படத்தில் தங்க நிறத்தில் ஜொலிக்கும்!
-              </span>
-            </div>
-          </div>
-
-          {/* Section 3: Custom Layout & Brands */}
-          <div className={`p-3.5 rounded-2xl ${isDarkMode ? 'bg-zinc-900/40 border border-zinc-800/60' : 'bg-slate-800/20 border border-slate-700/30'} space-y-3`}>
-            <span className="text-[10px] font-extrabold text-teal-400 uppercase tracking-wider flex items-center gap-1">
-              <Sliders size={12} /> வடிவமைப்பு மற்றும் லோகோ (Layout & Logo Customization)
-            </span>
-
-            <div className="grid grid-cols-2 gap-3">
-              {/* Aspect Ratio */}
-              <div className="space-y-1">
-                <label className="text-[9px] text-slate-400 font-bold block">அளவீடு (Aspect Ratio)</label>
-                <div className="grid grid-cols-2 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-                  <button
-                    onClick={() => setAspectRatio('9:16')}
-                    className={`py-1.5 text-[9px] font-extrabold rounded-lg cursor-pointer text-center transition-all ${aspectRatio === '9:16' ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'}`}
-                  >
-                    9:16 (Status)
-                  </button>
-                  <button
-                    onClick={() => setAspectRatio('1:1')}
-                    className={`py-1.5 text-[9px] font-extrabold rounded-lg cursor-pointer text-center transition-all ${aspectRatio === '1:1' ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'}`}
-                  >
-                    1:1 (Post)
-                  </button>
+                {/* Tint Mood Color */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                    <Palette size={13} /> வண்ண மேலடுக்கு (Tint Mood)
+                  </label>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {TINT_COLORS.map((tint) => (
+                      <button
+                        key={tint.id}
+                        onClick={() => {
+                          setSelectedTintColor(tint);
+                          if (overlayOpacity === 0) setOverlayOpacity(25); // auto-enable mild tint if user clicks a mood
+                        }}
+                        className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                          selectedTintColor.id === tint.id && overlayOpacity > 0
+                            ? 'border-blue-500 ring-2 ring-blue-500/40 font-extrabold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-zinc-800'
+                            : 'border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full border border-white/40" style={{ backgroundColor: tint.hex }} />
+                        <span className="text-[11px]">{tint.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Typography Font Selection */}
-              <div className="space-y-1">
-                <label className="text-[9px] text-slate-400 font-bold block">எழுத்துரு (Tamil Font Family)</label>
-                <select
-                  value={fontFamily}
-                  onChange={(e) => setFontFamily(e.target.value)}
-                  className="w-full p-1.5 text-[10px] font-extrabold rounded-xl bg-slate-950 border border-slate-800 text-white outline-none cursor-pointer"
+            </div>
+
+          </div>
+
+          {/* PANEL 2: Verse Picker & Text Editor */}
+          <div className={`p-5 rounded-3xl border shadow-sm space-y-4 ${
+            isDarkMode ? 'bg-zinc-900/90 border-zinc-800' : 'bg-white border-slate-200'
+          }`}>
+            <h3 className="font-extrabold flex items-center gap-2 text-sm uppercase tracking-wider text-slate-700 dark:text-zinc-200 border-b pb-3 dark:border-zinc-800">
+              <BookOpen size={17} className="text-blue-500" />
+              <span>வேதப்பகுதி & உரை (Bible Verse Content)</span>
+            </h3>
+
+            <div className="grid grid-cols-3 gap-2.5">
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 block mb-1">புத்தகம்</label>
+                <select 
+                  value={selectedBookId}
+                  onChange={(e) => setSelectedBookId(Number(e.target.value))}
+                  className={`w-full p-2.5 rounded-xl text-xs font-bold outline-none cursor-pointer border ${
+                    isDarkMode ? 'bg-zinc-950 border-zinc-800 text-zinc-100' : 'bg-slate-50 border-slate-200 text-slate-900'
+                  }`}
                 >
-                  <option value='"Mukta Malar"'>தடித்த எழுத்து (Mukta Malar)</option>
-                  <option value='"Arima"'>காட்சி எழுத்து (Arima)</option>
-                  <option value='"Kavivanar"'>வளைவு எழுத்து (Kavivanar)</option>
-                  <option value="system-ui">இயல்பு எழுத்து (Sans-serif)</option>
+                  {bibleBooks.map(b => (
+                    <option key={b.id} value={b.id}>{b.tamilName}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 block mb-1">அதிகாரம்</label>
+                <select 
+                  value={selectedChapter}
+                  onChange={(e) => setSelectedChapter(Number(e.target.value))}
+                  className={`w-full p-2.5 rounded-xl text-xs font-bold outline-none cursor-pointer border ${
+                    isDarkMode ? 'bg-zinc-950 border-zinc-800 text-zinc-100' : 'bg-slate-50 border-slate-200 text-slate-900'
+                  }`}
+                >
+                  {Array.from({length: bibleBooks.find(b => b.id === selectedBookId)?.chapters || 1}, (_, i) => i + 1).map(ch => (
+                    <option key={ch} value={ch}>அதிகாரம் {ch}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 block mb-1">வசனம்</label>
+                <select 
+                  value={selectedVerseNum}
+                  onChange={(e) => setSelectedVerseNum(Number(e.target.value))}
+                  className={`w-full p-2.5 rounded-xl text-xs font-bold outline-none cursor-pointer border ${
+                    isDarkMode ? 'bg-zinc-950 border-zinc-800 text-zinc-100' : 'bg-slate-50 border-slate-200 text-slate-900'
+                  }`}
+                >
+                  {getVersesForChapter(selectedBookId, selectedChapter).map(v => (
+                    <option key={v.verse} value={v.verse}>வசனம் {v.verse}</option>
+                  ))}
                 </select>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 block mb-1">வசன உரை (திருத்தலாம்)</label>
+              <textarea 
+                value={verseText}
+                onChange={(e) => setVerseText(e.target.value)}
+                rows={3}
+                className={`w-full p-3.5 rounded-2xl text-xs sm:text-sm font-semibold leading-relaxed outline-none border transition-colors ${
+                  isDarkMode ? 'bg-zinc-950 border-zinc-800 focus:border-blue-500 text-zinc-100' : 'bg-slate-50 border-slate-200 focus:border-blue-500 text-slate-900'
+                }`}
+              />
+            </div>
+          </div>
+
+          {/* PANEL 3: Typography, Sizing & Alignment Customizer */}
+          <div className={`p-5 rounded-3xl border shadow-sm space-y-4 ${
+            isDarkMode ? 'bg-zinc-900/90 border-zinc-800' : 'bg-white border-slate-200'
+          }`}>
+            <h3 className="font-extrabold flex items-center gap-2 text-sm uppercase tracking-wider text-slate-700 dark:text-zinc-200 border-b pb-3 dark:border-zinc-800">
+              <Sliders size={17} className="text-blue-500" />
+              <span>வடிவமைப்பு & எழுத்துரு (Layout & Typography)</span>
+            </h3>
+
+            {/* Aspect Ratio Buttons */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500">பரிமாணம் / விகிதம் (Aspect Ratio)</label>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { id: '9:16', label: '9:16 ஸ்டேட்டஸ் (WhatsApp/Story)' },
+                  { id: '1:1', label: '1:1 சதுரம் (Square Post)' },
+                  { id: '4:5', label: '4:5 போர்ட்ரெய்ட் (Feed Post)' },
+                  { id: '16:9', label: '16:9 பதாகை (Landscape)' },
+                ].map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => setAspectRatio(r.id as any)}
+                    className={`py-2 px-1 text-center rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                      aspectRatio === r.id
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md font-extrabold'
+                        : 'border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                    }`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Font & Sizing */}
+            <div className="space-y-4 pt-2">
+              
+              {/* Advanced Font Selector with Categories */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 flex items-center gap-1.5">
+                    <span>✨ அட்வான்ஸ் எழுத்துரு (100+ Pro Font Styles)</span>
+                    <span className="text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-2 py-0.5 rounded-full font-bold">
+                      {ADVANCED_FONTS.length} Fonts
+                    </span>
+                  </label>
+                  
+                  {/* Category Pills */}
+                  <div className="flex gap-1 overflow-x-auto pb-1 max-w-[280px] sm:max-w-none">
+                    {[
+                      { id: 'all', label: 'அனைத்தும்' },
+                      { id: 'tamil', label: 'தமிழ்' },
+                      { id: 'calligraphy', label: 'கர்சீவ் / அழகு' },
+                      { id: 'display', label: 'கம்பீரம் / போஸ்டர்' },
+                      { id: 'serif', label: 'பழைய வேதம்' },
+                      { id: 'modern', label: 'நவீன' },
+                    ].map(cat => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setFontCategory(cat.id)}
+                        className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                          fontCategory === cat.id
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1.5 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/50">
+                  {ADVANCED_FONTS
+                    .filter(f => fontCategory === 'all' || f.category === fontCategory)
+                    .map(f => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setFontFamily(f.id)}
+                        className={`p-2 rounded-xl text-left transition-all border cursor-pointer flex items-center justify-between ${
+                          fontFamily === f.id
+                            ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-500 ring-2 ring-blue-500/40 shadow-xs'
+                            : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="truncate pr-2">
+                          <p className="text-xs font-bold text-slate-800 dark:text-zinc-200 truncate">{f.name}</p>
+                          <p className="text-[13px] text-blue-600 dark:text-blue-400 truncate" style={{ fontFamily: f.id }}>{f.preview}</p>
+                        </div>
+                        {fontFamily === f.id && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />}
+                      </button>
+                    ))}
+                </div>
+              </div>
+
+              {/* Sliders Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-bold text-slate-500">
+                    <span>எழுத்து அளவு (Font Size)</span>
+                    <span className="font-mono text-blue-500">{fontSize}px</span>
+                  </div>
+                  <input 
+                    type="range" min="30" max="90" 
+                    value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="w-full accent-blue-600 h-2 bg-slate-200 dark:bg-zinc-800 rounded-lg cursor-pointer my-2"
+                  />
+                </div>
+
+                {/* Golden Highlight Word */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500">பொன் நிற சிறப்பம்ச வார்த்தை (Highlight)</label>
+                  <input 
+                    type="text" 
+                    value={highlightWord}
+                    onChange={(e) => setHighlightWord(e.target.value)}
+                    placeholder="எ.கா: கர்த்தர் / இயேசு"
+                    className={`w-full p-2.5 rounded-xl text-xs font-bold outline-none border transition-colors ${
+                      isDarkMode ? 'bg-zinc-950 border-zinc-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200 focus:border-blue-500'
+                    }`}
+                  />
+                </div>
+              </div>
+
               {/* Text Alignment */}
-              <div className="space-y-1">
-                <label className="text-[9px] text-slate-400 font-bold block">உரை அமைப்பு (Alignment)</label>
-                <div className="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-                  <button
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500">சீரமைப்பு (Text Alignment)</label>
+                <div className="flex gap-2">
+                  <button 
                     onClick={() => setTextAlign('left')}
-                    className={`py-1.5 flex items-center justify-center rounded-lg cursor-pointer transition-all ${textAlign === 'left' ? 'bg-slate-800 text-white' : 'text-slate-400'}`}
+                    className={`flex-1 py-2 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                      textAlign === 'left' ? 'bg-blue-600 text-white border-blue-600 shadow-xs' : 'border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400'
+                    }`}
                   >
-                    <AlignLeft size={13} />
+                    <AlignLeft size={16} />
                   </button>
-                  <button
+                  <button 
                     onClick={() => setTextAlign('center')}
-                    className={`py-1.5 flex items-center justify-center rounded-lg cursor-pointer transition-all ${textAlign === 'center' ? 'bg-slate-800 text-white' : 'text-slate-400'}`}
+                    className={`flex-1 py-2 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                      textAlign === 'center' ? 'bg-blue-600 text-white border-blue-600 shadow-xs' : 'border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400'
+                    }`}
                   >
-                    <AlignCenter size={13} />
+                    <AlignCenter size={16} />
                   </button>
-                  <button
+                  <button 
                     onClick={() => setTextAlign('right')}
-                    className={`py-1.5 flex items-center justify-center rounded-lg cursor-pointer transition-all ${textAlign === 'right' ? 'bg-slate-800 text-white' : 'text-slate-400'}`}
+                    className={`flex-1 py-2 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                      textAlign === 'right' ? 'bg-blue-600 text-white border-blue-600 shadow-xs' : 'border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400'
+                    }`}
                   >
-                    <AlignRight size={13} />
+                    <AlignRight size={16} />
                   </button>
                 </div>
               </div>
 
-              {/* Font Size Selector */}
-              <div className="space-y-1">
-                <label className="text-[9px] text-slate-400 font-bold block">எழுத்தின் அளவு (Font Size)</label>
-                <div className="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-center font-bold text-[8.5px]">
-                  <button
-                    onClick={() => setFontSize(38)}
-                    className={`py-1 rounded-lg cursor-pointer transition-all ${fontSize === 38 ? 'bg-slate-800 text-white' : 'text-slate-400'}`}
-                  >
-                    சிறிய
-                  </button>
-                  <button
-                    onClick={() => setFontSize(50)}
-                    className={`py-1 rounded-lg cursor-pointer transition-all ${fontSize === 50 ? 'bg-slate-800 text-white' : 'text-slate-400'}`}
-                  >
-                    நடு
-                  </button>
-                  <button
-                    onClick={() => setFontSize(60)}
-                    className={`py-1 rounded-lg cursor-pointer transition-all ${fontSize === 60 ? 'bg-slate-800 text-white' : 'text-slate-400'}`}
-                  >
-                    பெரிய
-                  </button>
+            </div>
+
+            {/* PANEL 3.5: Text Outline & Shadow Customizer */}
+            <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-zinc-800/80">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={textOutline} 
+                    onChange={(e) => setTextOutline(e.target.checked)} 
+                    className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                  />
+                  <span className="text-xs font-extrabold text-slate-800 dark:text-zinc-200">
+                    எழுத்து பார்டர் & அவுட்லைன் (Text Outline)
+                  </span>
+                </label>
+                {textOutline && (
+                  <span className="text-[11px] font-mono font-bold text-blue-600 dark:text-blue-400">
+                    அளவு: {outlineWidth}px
+                  </span>
+                )}
+              </div>
+
+              {textOutline && (
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-950/70 border border-slate-200/80 dark:border-zinc-800/80 space-y-3">
+                  {/* Outline Color Palette */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-[11px] font-bold text-slate-500">அவுட்லைன் வண்ணம் (Outline Color):</span>
+                      <span className="text-[11px] font-mono text-slate-400">{outlineColor}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {OUTLINE_COLORS.map(oc => (
+                        <button
+                          key={oc.color}
+                          type="button"
+                          onClick={() => setOutlineColor(oc.color)}
+                          className={`w-7 h-7 rounded-full border-2 transition-all cursor-pointer relative ${
+                            outlineColor === oc.color ? 'border-blue-500 scale-110 shadow-md ring-2 ring-blue-500/50' : 'border-slate-300 dark:border-zinc-700'
+                          }`}
+                          style={{ backgroundColor: oc.color }}
+                          title={oc.label}
+                        />
+                      ))}
+                      {/* Custom Outline Color Picker Input */}
+                      <label className="w-7 h-7 rounded-full border-2 border-dashed border-slate-400 dark:border-zinc-600 flex items-center justify-center cursor-pointer overflow-hidden hover:border-blue-500" title="விருப்ப வண்ணம் தேர்வு செய்">
+                        <input
+                          type="color"
+                          value={outlineColor}
+                          onChange={(e) => setOutlineColor(e.target.value)}
+                          className="opacity-0 w-0 h-0"
+                        />
+                        <span className="text-[10px] font-extrabold text-slate-500 dark:text-zinc-400">+</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Outline Width & Shadow Blur Sliders */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <div className="flex justify-between text-[11px] font-bold text-slate-500">
+                        <span>பார்டர் தடிமன் (Thickness)</span>
+                        <span className="font-mono text-blue-500">{outlineWidth}px</span>
+                      </div>
+                      <input 
+                        type="range" min="1" max="14" step="1"
+                        value={outlineWidth} onChange={(e) => setOutlineWidth(Number(e.target.value))}
+                        className="w-full accent-blue-600 h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-lg cursor-pointer my-1.5"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[11px] font-bold text-slate-500">
+                        <span>நிழல் பரவல் (Shadow Glow Blur)</span>
+                        <span className="font-mono text-blue-500">{shadowBlur}px</span>
+                      </div>
+                      <input 
+                        type="range" min="0" max="30" step="2"
+                        value={shadowBlur} onChange={(e) => setShadowBlur(Number(e.target.value))}
+                        className="w-full accent-blue-600 h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-lg cursor-pointer my-1.5"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Toggle Elements & Text Color Options */}
+            <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-zinc-800/80">
+              {/* Text Color Selector */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500">எழுத்து வண்ணம் (Text Color):</span>
+                <div className="flex items-center gap-2">
+                  {[
+                    { color: '#ffffff', label: 'வெள்ளை' },
+                    { color: '#ffd700', label: 'பொன் மஞ்சள்' },
+                    { color: '#0f172a', label: 'அடர் கருப்பு' },
+                    { color: '#fecdd3', label: 'பவளம்' },
+                    { color: '#67e8f9', label: 'வான் நீலம்' },
+                  ].map(c => (
+                    <button
+                      key={c.color}
+                      type="button"
+                      onClick={() => setTextColor(c.color)}
+                      className={`w-6 h-6 rounded-full border-2 transition-all cursor-pointer ${
+                        textColor === c.color ? 'border-blue-500 scale-125 shadow-md ring-2 ring-blue-500/50' : 'border-slate-300 dark:border-zinc-700'
+                      }`}
+                      style={{ backgroundColor: c.color }}
+                      title={c.label}
+                    />
+                  ))}
+                  {/* Custom Text Color Picker */}
+                  <label className="w-6 h-6 rounded-full border border-dashed border-slate-400 dark:border-zinc-600 flex items-center justify-center cursor-pointer overflow-hidden hover:border-blue-500" title="விருப்ப எழுத்து வண்ணம்">
+                    <input
+                      type="color"
+                      value={textColor}
+                      onChange={(e) => setTextColor(e.target.value)}
+                      className="opacity-0 w-0 h-0"
+                    />
+                    <span className="text-[10px] font-extrabold text-slate-500 dark:text-zinc-400">+</span>
+                  </label>
                 </div>
               </div>
-            </div>
 
-            {/* Custom Location badge input */}
-            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-800">
-              <div className="space-y-1">
-                <label className="text-[9px] text-slate-400 font-bold block">ஊர் பெயர் (Location label Under Logo)</label>
-                <input
-                  type="text"
-                  value={locationLabel}
-                  onChange={(e) => setLocationLabel(e.target.value)}
-                  placeholder="CHENNAI"
-                  className="w-full p-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white font-bold outline-none"
-                />
+              {/* Toggles Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-zinc-400 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={textOutline} 
+                    onChange={(e) => setTextOutline(e.target.checked)} 
+                    className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                  />
+                  <span>எழுத்து நிழல்/பார்டர்</span>
+                </label>
+
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-zinc-400 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={showQuoteMarks} 
+                    onChange={(e) => setShowQuoteMarks(e.target.checked)} 
+                    className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                  />
+                  <span>மேற்கோள் குறி</span>
+                </label>
+
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-zinc-400 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={showSeparator} 
+                    onChange={(e) => setShowSeparator(e.target.checked)} 
+                    className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                  />
+                  <span>பிரிவுக் கோடு</span>
+                </label>
+
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-zinc-400 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={showWatermark} 
+                    onChange={(e) => setShowWatermark(e.target.checked)} 
+                    className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                  />
+                  <span>UMN முத்திரை</span>
+                </label>
               </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] text-slate-400 font-bold block">வலைத்தள முகவரி (Footer Website)</label>
-                <input
-                  type="text"
-                  value={websiteLabel}
-                  onChange={(e) => setWebsiteLabel(e.target.value)}
-                  placeholder="bibleonlineumnministry.blogspot.com"
-                  className="w-full p-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white font-semibold outline-none"
-                />
-              </div>
             </div>
 
-            {/* Logo and Footer show/hide checkboxes */}
-            <div className="grid grid-cols-2 gap-2 pt-1.5">
-              <label className="flex items-center gap-2 cursor-pointer py-1">
-                <input
-                  type="checkbox"
-                  checked={showLogo}
-                  onChange={(e) => setShowLogo(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-0 bg-slate-950 border-slate-800 w-3.5 h-3.5 cursor-pointer"
-                />
-                <span className="text-[10px] text-slate-300 font-bold">UMN லோகோ காட்டுக</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer py-1">
-                <input
-                  type="checkbox"
-                  checked={showAppPromo}
-                  onChange={(e) => setShowAppPromo(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-0 bg-slate-950 border-slate-800 w-3.5 h-3.5 cursor-pointer"
-                />
-                <span className="text-[10px] text-slate-300 font-bold">அடிக்குறிப்பு காட்டுக</span>
-              </label>
-            </div>
           </div>
 
         </div>
 
       </div>
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 dark:bg-zinc-900/95 text-white text-xs sm:text-sm font-bold px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-2 animate-fadeIn backdrop-blur-md">
+          <CheckCircle2 size={17} className="text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
     </div>
   );

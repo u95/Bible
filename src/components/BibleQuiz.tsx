@@ -827,7 +827,7 @@ export default function BibleQuiz({ isDarkMode, onBack }: { isDarkMode: boolean;
         
         {/* SCREEN 1: CATEGORY SELECTION */}
         {quizScreen === 'categories' && (
-          <div className="p-4 space-y-4 animate-fadeIn">
+          <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 animate-fadeIn w-full max-w-6xl mx-auto">
             <div className={`p-4 rounded-2xl flex items-center gap-3 relative overflow-hidden text-white bg-gradient-to-br from-indigo-900 via-purple-950 to-zinc-950 border border-purple-800/30 shadow-md`}>
               <div className="p-2.5 rounded-xl bg-white/10 text-xl">🏆</div>
               <div>
@@ -842,7 +842,7 @@ export default function BibleQuiz({ isDarkMode, onBack }: { isDarkMode: boolean;
                 <span className="text-[10px] text-blue-500 font-bold flex items-center gap-0.5"><Flame size={12} /> XP பாயிண்ட்ஸ்</span>
               </div>
 
-              <div className="space-y-3 pb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 pb-8">
                 {CATEGORIES.map((cat) => {
                   const maxUnlocked = getMaxUnlocked(cat.id);
                   const percent = getCategoryProgressPercent(cat.id);
@@ -897,7 +897,7 @@ export default function BibleQuiz({ isDarkMode, onBack }: { isDarkMode: boolean;
 
         {/* SCREEN 2: LEVEL SELECTION (100 LEVELS) */}
         {quizScreen === 'levels' && (
-          <div className="p-4 space-y-4 animate-fadeIn flex-1 flex flex-col">
+          <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 animate-fadeIn flex-1 flex flex-col w-full max-w-6xl mx-auto">
             <div className={`p-4 rounded-2xl flex items-center justify-between border ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'}`}>
               <div className="flex items-center gap-3">
                 <div className="text-2xl">{selectedCategory.icon}</div>
@@ -923,7 +923,7 @@ export default function BibleQuiz({ isDarkMode, onBack }: { isDarkMode: boolean;
 
               {/* Responsive Grid with full levels */}
               <div className="flex-1 overflow-y-auto pb-10 pr-1">
-                <div className="grid grid-cols-4 gap-2.5">
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2.5 sm:gap-3">
                   {Array.from({ length: 100 }, (_, i) => i + 1).map((lvl) => {
                     const isUnlocked = lvl <= getMaxUnlocked(selectedCategory.id);
                     const stars = getStarsForLevel(selectedCategory.id, lvl);
@@ -988,7 +988,7 @@ export default function BibleQuiz({ isDarkMode, onBack }: { isDarkMode: boolean;
 
         {/* SCREEN 3: GAMEPLAY VIEW */}
         {quizScreen === 'play' && activeQuestions.length > 0 && (
-          <div className="p-4 flex-1 flex flex-col justify-between animate-fadeIn">
+          <div className="p-4 sm:p-6 flex-1 flex flex-col justify-between animate-fadeIn w-full max-w-3xl mx-auto">
             
             {/* Top Stat Row */}
             <div className="flex justify-between items-center shrink-0">

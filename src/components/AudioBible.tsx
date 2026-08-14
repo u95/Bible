@@ -536,7 +536,7 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
         {/* VERSE READING STREAMING BOARD (SCROLLS AUTOMATICALLY) */}
         <div 
           ref={verseListContainerRef}
-          className="flex-1 overflow-y-auto p-4 space-y-4"
+          className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-4 w-full max-w-4xl mx-auto"
         >
           {verses.map((v, index) => {
             const isActive = index === currentVerseIndex;
