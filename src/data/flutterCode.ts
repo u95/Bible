@@ -201,6 +201,13 @@ android {
     }
 }
 
+dependencies {
+    implementation 'com.appnext.sdk:core:2.7.2.473'
+    implementation 'com.appnext.sdk:banners:2.7.2.473'
+    implementation 'com.appnext.sdk:ads:2.7.2.473'
+    implementation 'com.google.android.gms:play-services-ads-identifier:18.0.1'
+}
+
 flutter {
     source '../..'
 }
