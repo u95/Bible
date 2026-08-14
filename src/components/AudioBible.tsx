@@ -8,17 +8,20 @@ import {
   Volume2, 
   VolumeX, 
   Clock, 
-  BookOpen, 
   ChevronDown, 
   Music, 
   Sparkles, 
   ArrowLeft,
-  Volume1,
   Sliders,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Globe,
+  Smartphone,
+  Info
 } from 'lucide-react';
 import { bibleBooks, getVersesForChapter, BibleBook, BibleVerse } from '../data/bibleData';
+
+type AudioEngineMode = 'online' | 'device' | 'simulation';
 
 export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean; onBack: () => void }) {
   // Book & Chapter Selectors
@@ -32,10 +35,12 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
   const [playbackRate, setPlaybackRate] = useState<number>(1.0);
   const [volume, setVolume] = useState<number>(1.0);
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [isSpeechSupported, setIsSpeechSupported] = useState<boolean>(true);
-  const [forceSimulation, setForceSimulation] = useState<boolean>(false);
-
-  const isUsingSimulation = !isSpeechSupported || forceSimulation;
+  
+  // Audio Engine: 'online' (HD Online Tamil voice via HTML5 Audio) or 'device' (Local TTS) or 'simulation' (Auto-Reader)
+  const [audioEngine, setAudioEngine] = useState<AudioEngineMode>('online');
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [hasTamilDeviceVoice, setHasTamilDeviceVoice] = useState<boolean>(false);
+  const [audioStatusMessage, setAudioStatusMessage] = useState<string>('');
 
   // Sleep Timer states
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null); // null = off, or 5, 15, 30, 45, 60
@@ -46,11 +51,18 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
   const [showBookSelector, setShowBookSelector] = useState<boolean>(false);
   const [showChapterSelector, setShowChapterSelector] = useState<boolean>(false);
   const [showSpeedSelector, setShowSpeedSelector] = useState<boolean>(false);
+  const [showEngineSelector, setShowEngineSelector] = useState<boolean>(false);
 
-  // Speech synthesis reference
+  // HTML5 Audio Reference for Online High-Fidelity Tamil Voice
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const audioChunkQueueRef = useRef<string[]>([]);
+  const currentChunkIndexRef = useRef<number>(0);
+
+  // Speech synthesis reference for Offline Device TTS
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const mockTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const keepAliveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Animated visualizer heights
   const [visualizerHeights, setVisualizerHeights] = useState<number[]>(Array(15).fill(4));
@@ -59,14 +71,69 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
   // Auto scroll reference for verses
   const verseListContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Initialize Speech Synthesis and load verses
+  // Helper to chunk text into safe sizes for speech / online TTS (<100 chars at clause boundaries)
+  const chunkTextForAudio = (text: string): string[] => {
+    const cleaned = text
+      .replace(/[0-9]+/g, '')
+      .replace(/[\(\[\{\}\]\)]/g, '')
+      .trim();
+
+    if (!cleaned) return [''];
+    if (cleaned.length <= 90) return [cleaned];
+
+    // Split on punctuation marks
+    const sentences = cleaned.split(/(?<=[.,;?!:।|])/g).map(s => s.trim()).filter(Boolean);
+    const chunks: string[] = [];
+    let currentChunk = '';
+
+    for (const sentence of sentences) {
+      if ((currentChunk + ' ' + sentence).length <= 90) {
+        currentChunk = currentChunk ? `${currentChunk} ${sentence}` : sentence;
+      } else {
+        if (currentChunk) chunks.push(currentChunk);
+        if (sentence.length > 90) {
+          // Break by words
+          const words = sentence.split(/\s+/);
+          let subChunk = '';
+          for (const word of words) {
+            if ((subChunk + ' ' + word).length <= 90) {
+              subChunk = subChunk ? `${subChunk} ${word}` : word;
+            } else {
+              if (subChunk) chunks.push(subChunk);
+              subChunk = word;
+            }
+          }
+          if (subChunk) currentChunk = subChunk;
+          else currentChunk = '';
+        } else {
+          currentChunk = sentence;
+        }
+      }
+    }
+    if (currentChunk) chunks.push(currentChunk);
+    return chunks.length > 0 ? chunks : [cleaned];
+  };
+
+  // Initialize Speech Synthesis and device voice list
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       synthRef.current = window.speechSynthesis;
-      setIsSpeechSupported(true);
-    } else {
-      setIsSpeechSupported(false);
-      console.warn("Speech Synthesis is not supported in this browser.");
+
+      const updateVoices = () => {
+        try {
+          const voices = window.speechSynthesis.getVoices();
+          setAvailableVoices(voices);
+          const hasTamil = voices.some(v => v.lang.startsWith('ta') || v.name.toLowerCase().includes('tamil'));
+          setHasTamilDeviceVoice(hasTamil);
+        } catch {
+          // ignore
+        }
+      };
+
+      updateVoices();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = updateVoices;
+      }
     }
 
     // Load active verses
@@ -75,35 +142,52 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
     return () => {
       stopPlayback();
       if (sleepTimerRef.current) clearInterval(sleepTimerRef.current);
+      if (keepAliveIntervalRef.current) clearInterval(keepAliveIntervalRef.current);
     };
   }, [selectedBook, selectedChapter]);
 
-  // Simulation / Mock Playback Effect for devices where Speech Synthesis is not supported or simulation is forced
+  // Keep-alive timer for Android WebView SpeechSynthesis
+  useEffect(() => {
+    if (isPlaying && audioEngine === 'device' && synthRef.current) {
+      keepAliveIntervalRef.current = setInterval(() => {
+        try {
+          if (synthRef.current && synthRef.current.paused) {
+            synthRef.current.resume();
+          }
+        } catch {
+          // ignore
+        }
+      }, 3000);
+    } else {
+      if (keepAliveIntervalRef.current) {
+        clearInterval(keepAliveIntervalRef.current);
+        keepAliveIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (keepAliveIntervalRef.current) {
+        clearInterval(keepAliveIntervalRef.current);
+        keepAliveIntervalRef.current = null;
+      }
+    };
+  }, [isPlaying, audioEngine]);
+
+  // Simulation / Mock Playback Effect for auto-reader mode
   useEffect(() => {
     if (mockTimerRef.current) {
       clearTimeout(mockTimerRef.current);
       mockTimerRef.current = null;
     }
 
-    if (isPlaying && isUsingSimulation) {
+    if (isPlaying && audioEngine === 'simulation') {
       const activeVerse = verses[currentVerseIndex];
       if (activeVerse) {
-        // Calculate dynamic delay based on verse length
         const wordCount = activeVerse.text.split(/\s+/).length;
-        // Base delay is 2500ms + 350ms per word
         const calculatedDelay = (2500 + wordCount * 350) / playbackRate;
-        // Keep it within comfortable reading bounds
         const delay = Math.max(3000, Math.min(calculatedDelay, 15000));
 
-        // Scroll active verse into view
-        const activeElement = document.getElementById(`audio-verse-${currentVerseIndex}`);
-        if (activeElement && verseListContainerRef.current) {
-          verseListContainerRef.current.scrollTo({
-            top: activeElement.offsetTop - 120,
-            behavior: 'smooth'
-          });
-        }
-
+        scrollToVerse(currentVerseIndex);
         startVisualizerAnimation();
 
         mockTimerRef.current = setTimeout(() => {
@@ -111,7 +195,6 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
           if (nextIndex < verses.length) {
             setCurrentVerseIndex(nextIndex);
           } else {
-            // Completed the chapter!
             if (selectedChapter < selectedBook.chapters) {
               setSelectedChapter(prev => prev + 1);
               setCurrentVerseIndex(0);
@@ -129,13 +212,25 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
         mockTimerRef.current = null;
       }
     };
-  }, [isPlaying, currentVerseIndex, verses, isUsingSimulation, playbackRate, selectedChapter]);
+  }, [isPlaying, currentVerseIndex, verses, audioEngine, playbackRate, selectedChapter]);
+
+  // Smooth scroll to active verse
+  const scrollToVerse = (index: number) => {
+    setTimeout(() => {
+      const activeElement = document.getElementById(`audio-verse-${index}`);
+      if (activeElement && verseListContainerRef.current) {
+        verseListContainerRef.current.scrollTo({
+          top: activeElement.offsetTop - 120,
+          behavior: 'smooth'
+        });
+      }
+    }, 80);
+  };
 
   // Load verses from local assets or fallback generator
   const loadChapterVerses = (book: BibleBook, chapterNum: number) => {
     stopPlayback();
     
-    // Attempt to load from JSON offline files
     fetch(`bible/${encodeURIComponent(book.englishName)}.json`)
       .then(res => {
         if (!res.ok) throw new Error("File not found");
@@ -160,7 +255,6 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
         }
       })
       .catch(err => {
-        // Fallback using our generator
         console.warn("Audio load fallback to static generator", err);
         const fallback = getVersesForChapter(book.id, chapterNum);
         setVerses(fallback);
@@ -174,7 +268,7 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
     
     visualizerIntervalRef.current = setInterval(() => {
       setVisualizerHeights(
-        Array(15).fill(0).map(() => Math.floor(Math.random() * 32) + 6)
+        Array(15).fill(0).map(() => Math.floor(Math.random() * 28) + 6)
       );
     }, 150);
   };
@@ -185,123 +279,203 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
     setVisualizerHeights(Array(15).fill(4));
   };
 
-  // Audio Playback Controllers
-  const playActiveVerse = (index: number) => {
-    if (isUsingSimulation) {
-      return;
-    }
-
-    if (!synthRef.current || verses.length === 0 || index >= verses.length) {
-      setIsPlaying(false);
-      stopVisualizerAnimation();
-      return;
-    }
-
-    // Cancel ongoing speech
-    synthRef.current.cancel();
-
-    const activeVerse = verses[index];
-    
-    // Scroll active verse into view
-    setTimeout(() => {
-      const activeElement = document.getElementById(`audio-verse-${index}`);
-      if (activeElement && verseListContainerRef.current) {
-        verseListContainerRef.current.scrollTo({
-          top: activeElement.offsetTop - 120,
-          behavior: 'smooth'
-        });
-      }
-    }, 100);
-
-    // Filter Tamil characters and clean the text to avoid robot stuttering
-    const cleanText = activeVerse.text
-      .replace(/[0-9]+/g, '')
-      .replace(/[\(\[\{\}\]\)]/g, '')
-      .trim();
-
-    // Setup voice synthesis utterance
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utteranceRef.current = utterance;
-    
-    // Query available voices and set a Tamil voice if present
-    const voices = synthRef.current.getVoices();
-    const tamilVoice = voices.find(v => v.lang === 'ta-IN' || v.lang.startsWith('ta'));
-    if (tamilVoice) {
-      utterance.voice = tamilVoice;
-    }
-    
-    utterance.rate = playbackRate;
-    utterance.volume = isMuted ? 0 : volume;
-
-    // Events
-    utterance.onstart = () => {
-      setIsPlaying(true);
-      startVisualizerAnimation();
-    };
-
-    utterance.onend = () => {
-      // Advance to next verse automatically
+  // Play a single audio chunk via Online HD Audio
+  const playNextOnlineChunk = (index: number) => {
+    if (currentChunkIndexRef.current >= audioChunkQueueRef.current.length) {
+      // Verse finished, move to next verse
       const nextIndex = index + 1;
       if (nextIndex < verses.length) {
         setCurrentVerseIndex(nextIndex);
         playActiveVerse(nextIndex);
       } else {
-        // Completed the chapter!
-        stopPlayback();
-        // Go to next chapter if available
+        // Finished Chapter!
         if (selectedChapter < selectedBook.chapters) {
           setSelectedChapter(prev => prev + 1);
+          setCurrentVerseIndex(0);
+        } else {
+          stopPlayback();
         }
       }
+      return;
+    }
+
+    const chunkText = audioChunkQueueRef.current[currentChunkIndexRef.current];
+    currentChunkIndexRef.current += 1;
+
+    // Use reliable Google Text-to-Speech audio streaming url for Tamil
+    const encodedText = encodeURIComponent(chunkText);
+    const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=ta&client=tw-ob&q=${encodedText}`;
+
+    if (!audioElementRef.current) {
+      audioElementRef.current = new Audio();
+    }
+
+    const audio = audioElementRef.current;
+    audio.src = audioUrl;
+    audio.playbackRate = playbackRate;
+    audio.volume = isMuted ? 0 : volume;
+
+    audio.onplay = () => {
+      setIsPlaying(true);
+      startVisualizerAnimation();
     };
 
-    utterance.onerror = (e) => {
-      console.error("SpeechSynthesis error:", e);
+    audio.onended = () => {
+      playNextOnlineChunk(index);
+    };
+
+    audio.onerror = (e) => {
+      console.warn("Online Audio failed, falling back to Device TTS", e);
+      // Seamlessly fall back to Device TTS if online fails or network drops
+      playDeviceTTSVerse(index);
+    };
+
+    audio.play().catch(err => {
+      console.warn("Audio play blocked or network error, falling back to Device TTS", err);
+      playDeviceTTSVerse(index);
+    });
+  };
+
+  // Play verse via Device Speech Synthesis (Local TTS)
+  const playDeviceTTSVerse = (index: number) => {
+    if (!synthRef.current) {
+      // Fall back to simulation
+      setAudioEngine('simulation');
+      setIsPlaying(true);
+      return;
+    }
+
+    try {
+      synthRef.current.cancel();
+      if (synthRef.current.paused) {
+        synthRef.current.resume();
+      }
+
+      const activeVerse = verses[index];
+      if (!activeVerse) return;
+
+      const cleanText = activeVerse.text
+        .replace(/[0-9]+/g, '')
+        .replace(/[\(\[\{\}\]\)]/g, '')
+        .trim();
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utteranceRef.current = utterance;
+      
+      // Explicitly configure Tamil language for Android & Web
+      utterance.lang = 'ta-IN';
+
+      const voices = synthRef.current.getVoices();
+      const tamilVoice = voices.find(v => 
+        v.lang === 'ta-IN' || 
+        v.lang.startsWith('ta') || 
+        v.name.toLowerCase().includes('tamil')
+      );
+
+      if (tamilVoice) {
+        utterance.voice = tamilVoice;
+      }
+
+      utterance.rate = playbackRate;
+      utterance.volume = isMuted ? 0 : volume;
+
+      utterance.onstart = () => {
+        setIsPlaying(true);
+        startVisualizerAnimation();
+      };
+
+      utterance.onend = () => {
+        const nextIndex = index + 1;
+        if (nextIndex < verses.length) {
+          setCurrentVerseIndex(nextIndex);
+          playActiveVerse(nextIndex);
+        } else {
+          if (selectedChapter < selectedBook.chapters) {
+            setSelectedChapter(prev => prev + 1);
+            setCurrentVerseIndex(0);
+          } else {
+            stopPlayback();
+          }
+        }
+      };
+
+      utterance.onerror = (e) => {
+        console.warn("Device TTS error:", e);
+        // Fall back to simulation so user is not blocked
+        setAudioEngine('simulation');
+      };
+
+      synthRef.current.speak(utterance);
+    } catch (err) {
+      console.error("Device TTS failed:", err);
+      setAudioEngine('simulation');
+    }
+  };
+
+  // Master play handler
+  const playActiveVerse = (index: number) => {
+    if (verses.length === 0 || index >= verses.length) {
       setIsPlaying(false);
       stopVisualizerAnimation();
-    };
+      return;
+    }
 
-    // Speak!
-    synthRef.current.speak(utterance);
+    scrollToVerse(index);
+
+    if (audioEngine === 'simulation') {
+      setIsPlaying(true);
+      startVisualizerAnimation();
+      return;
+    }
+
+    if (audioEngine === 'online') {
+      // Stop ongoing device synthesis
+      if (synthRef.current) synthRef.current.cancel();
+      // Prepare chunks for online audio
+      const activeVerse = verses[index];
+      const chunks = chunkTextForAudio(activeVerse.text);
+      audioChunkQueueRef.current = chunks;
+      currentChunkIndexRef.current = 0;
+      playNextOnlineChunk(index);
+    } else {
+      // Device TTS mode
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+      }
+      playDeviceTTSVerse(index);
+    }
   };
 
   const handlePlayPause = () => {
-    if (isUsingSimulation) {
-      setIsPlaying(!isPlaying);
-      if (!isPlaying) startVisualizerAnimation();
-      else stopVisualizerAnimation();
-      return;
-    }
-
-    if (!synthRef.current) {
-      // Mock playback if speech synthesis not available
-      setIsPlaying(!isPlaying);
-      if (!isPlaying) startVisualizerAnimation();
-      else stopVisualizerAnimation();
-      return;
-    }
-
     if (isPlaying) {
-      synthRef.current.pause();
-      setIsPlaying(false);
-      stopVisualizerAnimation();
+      stopPlayback();
     } else {
-      if (synthRef.current.paused) {
-        synthRef.current.resume();
-        setIsPlaying(true);
-        startVisualizerAnimation();
-      } else {
-        playActiveVerse(currentVerseIndex);
-      }
+      setIsPlaying(true);
+      playActiveVerse(currentVerseIndex);
     }
   };
 
   const stopPlayback = () => {
     setIsPlaying(false);
     stopVisualizerAnimation();
-    if (synthRef.current) {
-      synthRef.current.cancel();
+
+    if (audioElementRef.current) {
+      try {
+        audioElementRef.current.pause();
+        audioElementRef.current.currentTime = 0;
+      } catch {
+        // ignore
+      }
     }
+
+    if (synthRef.current) {
+      try {
+        synthRef.current.cancel();
+      } catch {
+        // ignore
+      }
+    }
+
     if (mockTimerRef.current) {
       clearTimeout(mockTimerRef.current);
       mockTimerRef.current = null;
@@ -342,8 +516,10 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
   const handleRateChange = (rate: number) => {
     setPlaybackRate(rate);
     setShowSpeedSelector(false);
-    if (isPlaying && synthRef.current) {
-      // Restart current verse with new speed
+    if (isPlaying) {
+      if (audioElementRef.current) {
+        audioElementRef.current.playbackRate = rate;
+      }
       playActiveVerse(currentVerseIndex);
     }
   };
@@ -351,7 +527,7 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
   // Sleep Timer Controller
   const setSleepTimer = (minutes: number | null) => {
     setSleepTimerMinutes(minutes);
-    setShowSpeedSelector(false); // Close other settings
+    setShowSpeedSelector(false);
 
     if (sleepTimerRef.current) clearInterval(sleepTimerRef.current);
 
@@ -401,8 +577,119 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
             <h1 className="text-sm font-black tracking-tight flex items-center gap-1.5">
               <Music size={14} className="text-blue-500 animate-pulse" /> ஆடியோ வேதாகமம் (Audio Bible)
             </h1>
-            <p className="text-[10px] text-slate-400 font-medium">பரிசுத்த வேதாகம உரை வாசிப்பு</p>
+            <p className="text-[10px] text-slate-400 font-medium">தெளிவான தமிழ் குரல் வாசிப்பு</p>
           </div>
+        </div>
+
+        {/* Audio Engine Mode Pill */}
+        <div className="relative">
+          <button
+            onClick={() => setShowEngineSelector(!showEngineSelector)}
+            className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-extrabold flex items-center gap-1.5 cursor-pointer transition-all ${
+              audioEngine === 'online'
+                ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-950/60 dark:border-blue-700 dark:text-blue-300'
+                : audioEngine === 'device'
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-600 dark:bg-emerald-950/60 dark:border-emerald-700 dark:text-emerald-300'
+                : 'bg-amber-50 border-amber-300 text-amber-600 dark:bg-amber-950/60 dark:border-amber-700 dark:text-amber-300'
+            }`}
+            title="குரல் முறை தேர்வு (Audio Engine)"
+          >
+            {audioEngine === 'online' && <Globe size={12} />}
+            {audioEngine === 'device' && <Smartphone size={12} />}
+            {audioEngine === 'simulation' && <Sparkles size={12} />}
+            <span>
+              {audioEngine === 'online' && 'HD ஆன்லைன் குரல்'}
+              {audioEngine === 'device' && 'சாதனக் குரல் (TTS)'}
+              {audioEngine === 'simulation' && 'தானியங்கி வாசிப்பு'}
+            </span>
+            <ChevronDown size={12} />
+          </button>
+
+          {/* Engine Dropdown Menu */}
+          <AnimatePresence>
+            {showEngineSelector && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 5 }}
+                className={`absolute right-0 mt-1.5 w-64 p-2 rounded-2xl border shadow-2xl z-50 ${
+                  isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'
+                }`}
+              >
+                <div className="text-[10px] font-black text-slate-400 px-2 py-1 uppercase tracking-wider">
+                  குரல் தேர்வு (Audio Engine)
+                </div>
+
+                <div className="space-y-1 mt-1">
+                  <button
+                    onClick={() => {
+                      stopPlayback();
+                      setAudioEngine('online');
+                      setShowEngineSelector(false);
+                    }}
+                    className={`w-full text-left p-2 rounded-xl text-xs font-bold flex items-center justify-between cursor-pointer ${
+                      audioEngine === 'online'
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300'
+                        : 'hover:bg-slate-100 dark:hover:bg-zinc-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Globe size={14} className="text-blue-500 shrink-0" />
+                      <div>
+                        <p className="font-extrabold text-[11px]">HD ஆன்லைன் குரல் (பரிந்துரை)</p>
+                        <p className="text-[9px] text-slate-400 font-normal">தெளிவான இயற்கை தமிழ் குரல்</p>
+                      </div>
+                    </div>
+                    {audioEngine === 'online' && <span className="w-2 h-2 rounded-full bg-blue-500" />}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      stopPlayback();
+                      setAudioEngine('device');
+                      setShowEngineSelector(false);
+                    }}
+                    className={`w-full text-left p-2 rounded-xl text-xs font-bold flex items-center justify-between cursor-pointer ${
+                      audioEngine === 'device'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300'
+                        : 'hover:bg-slate-100 dark:hover:bg-zinc-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Smartphone size={14} className="text-emerald-500 shrink-0" />
+                      <div>
+                        <p className="font-extrabold text-[11px]">சாதன ஆஃப்லைன் குரல்</p>
+                        <p className="text-[9px] text-slate-400 font-normal">போனின் உள்ளமைக்கப்பட்ட TTS</p>
+                      </div>
+                    </div>
+                    {audioEngine === 'device' && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      stopPlayback();
+                      setAudioEngine('simulation');
+                      setShowEngineSelector(false);
+                    }}
+                    className={`w-full text-left p-2 rounded-xl text-xs font-bold flex items-center justify-between cursor-pointer ${
+                      audioEngine === 'simulation'
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300'
+                        : 'hover:bg-slate-100 dark:hover:bg-zinc-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={14} className="text-amber-500 shrink-0" />
+                      <div>
+                        <p className="font-extrabold text-[11px]">தானியங்கி வாசிப்பு (Silent)</p>
+                        <p className="text-[9px] text-slate-400 font-normal">வசனங்கள் தானாக நகரும்</p>
+                      </div>
+                    </div>
+                    {audioEngine === 'simulation' && <span className="w-2 h-2 rounded-full bg-amber-500" />}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -508,30 +795,22 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
           </div>
         </div>
 
-        {/* NOTIFICATION BOX IF NOT SUPPORTED OR SIMULATING */}
-        {isUsingSimulation && (
-          <div className="bg-amber-500/10 dark:bg-amber-500/5 border-b border-amber-500/20 p-2.5 px-4 text-amber-500 dark:text-amber-400 text-[10px] font-bold flex items-center justify-between gap-1.5">
-            <div className="flex items-center gap-1.5">
-              <AlertCircle size={12} className="shrink-0 animate-pulse" />
-              <span>
-                {!isSpeechSupported 
-                  ? "தானியங்கி வாசிப்பு முறை: உங்கள் உலாவி உரை வாசிப்பை ஆதரிக்கவில்லை. வசனங்கள் தானாகவே முன்னிலைப்படுத்தப்பட்டு நகரும்."
-                  : "தானியங்கி வாசிப்பு முறை (வசனங்கள் தானாகவே நகரும்)."}
-              </span>
-            </div>
-            {isSpeechSupported && (
-              <button 
-                onClick={() => {
-                  stopPlayback();
-                  setForceSimulation(false);
-                }}
-                className="bg-amber-500 text-white dark:bg-amber-600 px-2 py-0.5 rounded text-[9px] font-bold cursor-pointer"
-              >
-                வழக்கமான ஆடியோவிற்கு மாறவும்
-              </button>
-            )}
+        {/* STATUS / TIP BAR */}
+        <div className={`px-4 py-1.5 text-[11px] font-semibold flex items-center justify-between border-b ${
+          isDarkMode ? 'bg-zinc-900/40 border-zinc-800 text-zinc-400' : 'bg-slate-100/60 border-slate-200 text-slate-600'
+        }`}>
+          <div className="flex items-center gap-1.5">
+            <Info size={12} className="text-blue-500 shrink-0" />
+            <span>
+              {audioEngine === 'online' && '🔊 இயற்கை தமிழ் ஒலி வடிவம் (100% சத்தம் கேட்கும்)'}
+              {audioEngine === 'device' && (hasTamilDeviceVoice ? '📱 சாதன தமிழ் குரல்' : '📱 சாதன TTS')}
+              {audioEngine === 'simulation' && '📖 வசன வாசிப்பு முறை (Silent Mode)'}
+            </span>
           </div>
-        )}
+          <span className="text-[10px] font-mono font-bold text-blue-500">
+            {verses.length} வசனங்கள்
+          </span>
+        </div>
 
         {/* VERSE READING STREAMING BOARD (SCROLLS AUTOMATICALLY) */}
         <div 
@@ -619,7 +898,7 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className={`absolute bottom-12 left-0 w-44 p-2 rounded-2xl border shadow-xl z-50 ${
+                    className={`absolute bottom-12 left-0 w-48 p-2 rounded-2xl border shadow-xl z-50 ${
                       isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'
                     }`}
                   >
@@ -657,22 +936,6 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
                           ))}
                         </div>
                       </div>
-
-                      {isSpeechSupported && (
-                        <div className="border-t border-slate-100 dark:border-zinc-800/80 pt-1.5">
-                          <button
-                            onClick={() => {
-                              stopPlayback();
-                              setForceSimulation(!forceSimulation);
-                              setShowSpeedSelector(false);
-                            }}
-                            className="w-full py-1.5 px-2 text-[9px] font-black rounded-lg cursor-pointer flex items-center justify-between bg-blue-50/70 dark:bg-zinc-800/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100/80"
-                          >
-                            <span>{forceSimulation ? "வழக்கமான ஆடியோ" : "தானியங்கி முறை (Sim)"}</span>
-                            <Sparkles size={10} className="text-blue-500 shrink-0" />
-                          </button>
-                        </div>
-                      )}
                     </div>
                   </motion.div>
                 )}
@@ -713,9 +976,13 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
             {/* Volume toggle */}
             <button 
               onClick={() => {
-                setIsMuted(!isMuted);
+                const nextMuted = !isMuted;
+                setIsMuted(nextMuted);
+                if (audioElementRef.current) {
+                  audioElementRef.current.volume = nextMuted ? 0 : volume;
+                }
                 if (utteranceRef.current) {
-                  utteranceRef.current.volume = isMuted ? volume : 0;
+                  utteranceRef.current.volume = nextMuted ? 0 : volume;
                 }
               }}
               className={`p-2.5 rounded-xl border cursor-pointer ${

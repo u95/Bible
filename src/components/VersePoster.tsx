@@ -3,7 +3,7 @@ import {
   ArrowLeft, Download, Share2, Image as ImageIcon, Type, 
   AlignLeft, AlignCenter, AlignRight, BookOpen, Brush, Sliders, Check,
   Upload, Search, Sparkles, RefreshCw, Copy, CheckCircle2, Eye,
-  Palette, Sun, Layers, ZoomIn
+  Palette, Sun, Layers, ZoomIn, X, MessageCircle, Smartphone
 } from 'lucide-react';
 import { bibleBooks, getVersesForChapter } from '../data/bibleData';
 import umnLogo from '../assets/images/umn_logo_1783706606382.jpg';
@@ -288,6 +288,8 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [savedImageDataUrl, setSavedImageDataUrl] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -317,6 +319,27 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
     fontSize, textColor, refColor, aspectRatio, highlightWord, blurEffect,
     showQuoteMarks, showSeparator, showWatermark, textOutline, outlineColor, outlineWidth, shadowBlur
   ]);
+
+  // Helper to open Save/Share modal safely without triggering APK crashes
+  const openSaveShareModal = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    try {
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      setSavedImageDataUrl(dataUrl);
+      setIsSaveModalOpen(true);
+    } catch (err) {
+      console.error('Error generating image preview:', err);
+      // Fallback try without quality arg
+      try {
+        const dataUrl = canvas.toDataURL();
+        setSavedImageDataUrl(dataUrl);
+        setIsSaveModalOpen(true);
+      } catch (err2) {
+        showToast('பட முன்னோட்டத்தை உருவாக்க முடியவில்லை.');
+      }
+    }
+  };
 
   const wrapText = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
     const words = text.split(' ');
@@ -551,62 +574,114 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
     };
   };
 
-  const handleDownload = () => {
+  const handleDirectDownload = () => {
     setIsDownloading(true);
     try {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-      const link = document.createElement('a');
-      link.download = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
-      link.href = dataUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      showToast('பட அட்டை வெற்றிகரமாகப் பதிவிறக்கப்பட்டது! 🎉');
+
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          showToast('படத்தைப் பதிவிறக்குவதில் பிழை ஏற்பட்டது.');
+          setIsDownloading(false);
+          return;
+        }
+
+        const fileName = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = blobUrl;
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        }, 1000);
+
+        showToast('பட அட்டை வெற்றிகரமாகப் பதிவிறக்கப்பட்டது! 🎉');
+        setIsDownloading(false);
+      }, 'image/jpeg', 0.95);
     } catch (e) {
       console.error(e);
       showToast('படத்தைப் பதிவிறக்குவதில் பிழை ஏற்பட்டது.');
-    } finally {
       setIsDownloading(false);
     }
   };
 
-  const handleShare = async () => {
+  const handleDeviceShare = async () => {
     setIsSharing(true);
     const canvas = canvasRef.current;
     if (!canvas) {
       setIsSharing(false);
       return;
     }
+
     try {
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
-      if (!blob) throw new Error('Blob creation failed');
-      const file = new File([blob], `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`, { type: 'image/jpeg' });
-      
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: `${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum} - UMN Tamil Bible`,
-          text: `"${verseText}" - ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`,
-          files: [file]
-        });
-        showToast('வெற்றிகரமாகப் பகிரப்பட்டது!');
-      } else if (navigator.share) {
-        await navigator.share({
-          title: 'UMN Tamil Bible Verse',
-          text: `"${verseText}" - ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`,
-          url: 'https://bibleonlineumnministry.blogspot.com/'
-        });
-        showToast('பகிரப்பட்டது!');
-      } else {
-        handleDownload();
-        showToast('பகிர்வு வசதி இல்லாததால் படம் பதிவிறக்கப்பட்டது.');
-      }
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setIsSharing(false);
+          return;
+        }
+
+        const fileName = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
+        const file = new File([blob], fileName, { type: 'image/jpeg' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: `${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum} - UMN Tamil Bible`,
+              text: `"${verseText}" - ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`,
+              files: [file]
+            });
+            showToast('வெற்றிகரமாகப் பகிரப்பட்டது!');
+          } catch (err) {
+            console.log('Share canceled or error:', err);
+          }
+        } else if (navigator.share) {
+          try {
+            await navigator.share({
+              title: `${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`,
+              text: `"${verseText}" - ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum} | UMN Tamil Bible`,
+              url: 'https://u95.github.io/Umn-Bible-Hub-/'
+            });
+            showToast('பகிரப்பட்டது!');
+          } catch (err) {
+            console.log('Share canceled:', err);
+          }
+        } else {
+          handleDirectDownload();
+        }
+        setIsSharing(false);
+      }, 'image/jpeg', 0.95);
     } catch (e) {
-      console.log('Share error or cancelled:', e);
-    } finally {
+      console.log('Share error:', e);
       setIsSharing(false);
+      handleDirectDownload();
     }
+  };
+
+  const handleWhatsAppShare = () => {
+    const textToShare = encodeURIComponent(
+      `📖 *${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}*\n\n"${verseText}"\n\n✨ *UMN Tamil Bible App* ✨`
+    );
+    const whatsappUrl = `whatsapp://send?text=${textToShare}`;
+    
+    try {
+      window.location.href = whatsappUrl;
+    } catch {
+      window.open(`https://api.whatsapp.com/send?text=${textToShare}`, '_blank');
+    }
+  };
+
+  const handleCopyVerseText = () => {
+    const textToCopy = `"${verseText}" - ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum} (UMN Tamil Bible)`;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      showToast('வசனம் கிளிப்போர்டில் நகலெடுக்கப்பட்டது! 📋');
+    }).catch(() => {
+      showToast('நகலெடுக்க முடியவில்லை.');
+    });
   };
 
   const handleCopyImage = async () => {
@@ -622,11 +697,11 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
           ]);
           showToast('படம் கிளிப்போர்டில் நகலெடுக்கப்பட்டது! 📋');
         } catch {
-          handleDownload();
+          openSaveShareModal();
         }
       }, 'image/png');
     } catch {
-      handleDownload();
+      openSaveShareModal();
     }
   };
 
@@ -754,8 +829,7 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
           </button>
 
           <button 
-            onClick={handleShare}
-            disabled={isSharing}
+            onClick={openSaveShareModal}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
           >
             <Share2 size={15} />
@@ -763,8 +837,7 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
           </button>
 
           <button 
-            onClick={handleDownload}
-            disabled={isDownloading}
+            onClick={openSaveShareModal}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
           >
             <Download size={15} />
@@ -803,8 +876,7 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
             {/* Large Primary Action Bar Below Preview */}
             <div className="w-full grid grid-cols-2 gap-2.5 pt-4">
               <button 
-                onClick={handleShare}
-                disabled={isSharing}
+                onClick={openSaveShareModal}
                 className="py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 cursor-pointer active:scale-98 transition-all"
               >
                 <Share2 size={17} />
@@ -812,8 +884,7 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
               </button>
 
               <button 
-                onClick={handleDownload}
-                disabled={isDownloading}
+                onClick={openSaveShareModal}
                 className="py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 cursor-pointer active:scale-98 transition-all"
               >
                 <Download size={17} />
@@ -1497,6 +1568,118 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
         </div>
 
       </div>
+
+      {/* Save & Share Full HD Modal for APK & Web */}
+      {isSaveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className={`w-full max-w-lg max-h-[92vh] flex flex-col rounded-3xl border shadow-2xl overflow-hidden ${
+            isDarkMode ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            
+            {/* Modal Header */}
+            <div className={`p-4 border-b flex items-center justify-between shrink-0 ${
+              isDarkMode ? 'border-zinc-800 bg-zinc-900/50' : 'border-slate-100 bg-slate-50/70'
+            }`}>
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} className="text-amber-500" />
+                <div>
+                  <h3 className="font-black text-sm sm:text-base">பட அட்டை சேமிப்பு & பகிர்வு</h3>
+                  <p className="text-[10px] text-slate-400">உயர்தர HD ஸ்டேட்டஸ் தயார்</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsSaveModalOpen(false)}
+                className={`p-1.5 rounded-full cursor-pointer hover:bg-opacity-15 ${
+                  isDarkMode ? 'hover:bg-white text-zinc-400 hover:text-white' : 'hover:bg-slate-900 text-slate-500 hover:text-black'
+                }`}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Content / Preview Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col items-center">
+              
+              {/* Rendered Image Card (Direct touch target for APK Long Press) */}
+              <div className="w-full max-w-[320px] rounded-2xl overflow-hidden shadow-xl border-2 border-white/20 dark:border-zinc-700/50 bg-black flex items-center justify-center relative group">
+                {savedImageDataUrl ? (
+                  <img 
+                    src={savedImageDataUrl} 
+                    alt="Bible Verse Status" 
+                    className="w-full h-auto max-h-[48vh] object-contain block select-auto" 
+                  />
+                ) : (
+                  <div className="p-12 text-center text-xs text-slate-400">படம் தயாராகிறது...</div>
+                )}
+              </div>
+
+              {/* APK Long-Press Guidance Box */}
+              <div className="w-full p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs flex items-start gap-2.5">
+                <Smartphone size={16} className="shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-relaxed">
+                  <span className="font-extrabold block mb-0.5">📱 மொபைல் & APK கேலரி சேமிப்பு:</span>
+                  மேலே உள்ள படத்தை <strong>2 விநாடிகள் அழுத்திப் பிடித்து (Long Press)</strong> <em>'Save image' / 'படத்தைச் சேமி'</em> என்பதைத் தேர்ந்தெடுத்தால் உடனடியாக போன் கேலரியில் சேமிக்கப்படும்!
+                </div>
+              </div>
+
+              {/* One-Tap Action Buttons Grid */}
+              <div className="w-full grid grid-cols-2 gap-2.5 pt-1">
+                {/* WhatsApp Status Direct Button */}
+                <button
+                  onClick={handleWhatsAppShare}
+                  className="py-3 px-3 rounded-2xl bg-[#25D366] hover:bg-[#20ba59] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 cursor-pointer active:scale-98 transition-all"
+                >
+                  <MessageCircle size={17} />
+                  <span>வாட்ஸ்அப் (WhatsApp)</span>
+                </button>
+
+                {/* Direct Download Button */}
+                <button
+                  onClick={handleDirectDownload}
+                  disabled={isDownloading}
+                  className="py-3 px-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer active:scale-98 transition-all"
+                >
+                  <Download size={17} />
+                  <span>HD டவுன்லோட்</span>
+                </button>
+
+                {/* Device Share Button */}
+                <button
+                  onClick={handleDeviceShare}
+                  disabled={isSharing}
+                  className="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
+                >
+                  <Share2 size={15} />
+                  <span>நேரடி பகிர்வு</span>
+                </button>
+
+                {/* Copy Verse Text Button */}
+                <button
+                  onClick={handleCopyVerseText}
+                  className="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
+                >
+                  <Copy size={15} />
+                  <span>வசனம் நகலெடு</span>
+                </button>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className={`p-3 border-t flex justify-end shrink-0 ${
+              isDarkMode ? 'border-zinc-800 bg-zinc-900/40' : 'border-slate-100 bg-slate-50/60'
+            }`}>
+              <button
+                onClick={() => setIsSaveModalOpen(false)}
+                className="px-5 py-2 rounded-xl text-xs font-bold bg-slate-200 dark:bg-zinc-800 hover:bg-slate-300 dark:hover:bg-zinc-700 cursor-pointer transition-colors"
+              >
+                மூடு (Close)
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Floating Toast Notification */}
       {toastMessage && (
