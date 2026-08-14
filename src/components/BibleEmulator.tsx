@@ -1399,16 +1399,16 @@ export default function BibleEmulator() {
         </div>
       )}
 
-      {/* Google AdMob Live Banner Ad Slot Mockup */}
+      {/* Appnext Live Banner Ad Slot Mockup */}
       <div className={`shrink-0 border-t flex flex-col select-none ${isDarkMode ? 'border-zinc-800' : 'border-slate-200'}`}>
         {/* Ad Info Header */}
         <div className={`px-2 py-0.5 flex items-center justify-between text-[9px] font-medium ${isDarkMode ? 'bg-zinc-900 text-zinc-400 border-b border-zinc-800' : 'bg-slate-100 text-slate-500 border-b border-slate-200'}`}>
           <div className="flex items-center gap-1.5">
-            <span className="px-1 py-0.2 text-[8px] font-black tracking-wider uppercase rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-              LIVE ADMOB
+            <span className="px-1 py-0.2 text-[8px] font-black tracking-wider uppercase rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+              LIVE APPNEXT
             </span>
             <span className="font-mono truncate">
-              ID: ca-app-pub-4931646089594136/7536792356
+              ID: ce1fc215-2b6f-426f-b7df-35b3c403b25b
             </span>
           </div>
         </div>

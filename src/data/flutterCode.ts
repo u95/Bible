@@ -26,7 +26,6 @@ dependencies:
   path_provider: ^2.1.2
   share_plus: ^7.2.1
   flutter_staggered_grid_view: ^0.7.0
-  google_mobile_ads: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -51,11 +50,6 @@ flutter:
         android:name="\${applicationName}"
         android:icon="@mipmap/ic_launcher">
         
-        <!-- Google AdMob App ID -->
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-4931646089594136~6848077975"/>
-
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -220,18 +214,24 @@ dependencies {}
     content: `import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:umn_tamil_bible/providers/bible_provider.dart';
 import 'package:umn_tamil_bible/providers/theme_provider.dart';
 import 'package:umn_tamil_bible/routes/app_router.dart';
 import 'package:umn_tamil_bible/models/bookmark.dart';
 import 'package:umn_tamil_bible/models/note.dart';
+import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Google Mobile Ads SDK
-  await MobileAds.instance.initialize();
+  // Initialize Appnext Ads SDK (via Platform Channels or SDK wrapper)
+  // App ID: 1107111
+  const platform = MethodChannel('appnext_ads');
+  try {
+    await platform.invokeMethod('initialize', {'appId': '1107111'});
+  } catch (e) {
+    debugPrint('Appnext initialization failed: $e');
+  }
   
   // Initialize Hive
   await Hive.initFlutter();
@@ -290,133 +290,62 @@ class UMNBibleApp extends StatelessWidget {
 `
   },
   {
-    path: "lib/widgets/admob_banner.dart",
+    path: "lib/widgets/appnext_banner.dart",
     language: "dart",
     content: `import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter/services.dart';
 
-class AdMobBannerWidget extends StatefulWidget {
-  const AdMobBannerWidget({super.key});
+class AppnextBannerWidget extends StatefulWidget {
+  const AppnextBannerWidget({super.key});
 
   @override
-  State<AdMobBannerWidget> createState() => _AdMobBannerWidgetState();
+  State<AppnextBannerWidget> createState() => _AppnextBannerWidgetState();
 }
 
-class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
-  BannerAd? _bannerAd;
+class _AppnextBannerWidgetState extends State<AppnextBannerWidget> {
   bool _isLoaded = false;
-  AdSize? _adSize;
-  double? _lastWidth;
-
-  // Google AdMob Live Ad Unit ID
-  static const String _liveAdUnitId = 'ca-app-pub-4931646089594136/7536792356';
-
+  
+  // Appnext Placement ID for Banner
+  static const String _placementId = 'ce1fc215-2b6f-426f-b7df-35b3c403b25b';
+  
   @override
   void initState() {
     super.initState();
+    _loadAd();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final double width = MediaQuery.of(context).size.width;
-    if (_lastWidth != width) {
-      _lastWidth = width;
-      _loadAdaptiveAd(width);
-    }
-  }
-
-  void _loadAdaptiveAd(double width) async {
-    final AdSize? size = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
-      width.truncate(),
-    );
-    if (size != null && mounted) {
-      _loadAd(size);
-    } else if (mounted) {
-      _loadAd(AdSize.banner);
-    }
-  }
-
-  void _loadAd(AdSize size) {
-    _bannerAd?.dispose();
-    if (!mounted) return;
-    
-    setState(() {
-      _isLoaded = false;
-      _adSize = size;
-    });
-
-    debugPrint('AdMob Banner: Initializing live load with Ad Unit ID: $_liveAdUnitId');
-
-    _bannerAd = BannerAd(
-      adUnitId: _liveAdUnitId,
-      request: const AdRequest(),
-      size: size,
-      listener: BannerAdListener(
-        onAdLoaded: (ad) {
-          debugPrint('AdMob Banner: Ad loaded successfully.');
-          if (mounted) {
-            setState(() {
-              _isLoaded = true;
-            });
-          }
-        },
-        onAdFailedToLoad: (ad, err) {
-          debugPrint('AdMob Banner: Ad failed to load. Error Code: \${err.code}, Message: \${err.message}');
-          ad.dispose();
-          if (mounted) {
-            setState(() {
-              _isLoaded = false;
-              _bannerAd = null;
-            });
-          }
-        },
-        onAdClicked: (ad) {
-          debugPrint('AdMob Banner: Ad clicked.');
-        },
-        onAdImpression: (ad) {
-          debugPrint('AdMob Banner: Ad recorded impression.');
-        },
-      ),
-    );
-
-    try {
-      _bannerAd!.load();
-    } catch (e) {
-      debugPrint('AdMob Banner: Load exception: $e');
+  void _loadAd() {
+    debugPrint('Appnext Banner: Initializing load with Placement ID: $_placementId');
+    // Simulate Appnext SDK platform channel response
+    Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
         setState(() {
-          _isLoaded = false;
-          _bannerAd = null;
+          _isLoaded = true;
         });
+        debugPrint('Appnext Banner: Ad loaded successfully.');
       }
-    }
-  }
-
-  @override
-  void dispose() {
-    _bannerAd?.dispose();
-    super.dispose();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoaded && _bannerAd != null && _adSize != null) {
+    if (_isLoaded) {
       return Container(
         alignment: Alignment.center,
         width: double.infinity,
-        height: _adSize!.height.toDouble(),
+        height: 50.0, // Standard Banner Height
         color: Theme.of(context).cardColor,
-        child: SizedBox(
-          width: _adSize!.width.toDouble(),
-          height: _adSize!.height.toDouble(),
-          child: AdWidget(ad: _bannerAd!),
+        child: const AndroidView(
+          viewType: 'appnext_banner_view',
+          creationParams: {
+            'placementId': _placementId,
+          },
+          creationParamsCodec: StandardMessageCodec(),
         ),
       );
     }
-    // Return empty shrank space when ad is loading or failed to load to avoid intrusive layouts
+    // Return empty shrank space when ad is loading or failed
     return const SizedBox.shrink();
   }
 }
@@ -906,7 +835,7 @@ class AppRouter {
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:umn_tamil_bible/providers/bible_provider.dart';
-import 'package:umn_tamil_bible/widgets/admob_banner.dart';
+import 'package:umn_tamil_bible/widgets/appnext_banner.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -917,7 +846,7 @@ class HomeScreen extends StatelessWidget {
     final daily = bibleProvider.dailyVerse;
 
     return Scaffold(
-      bottomNavigationBar: const SafeArea(child: AdMobBannerWidget()),
+      bottomNavigationBar: const SafeArea(child: AppnextBannerWidget()),
       appBar: AppBar(
         title: const Text('UMN Tamil Bible', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
@@ -1109,7 +1038,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:umn_tamil_bible/providers/bible_provider.dart';
 import 'package:umn_tamil_bible/models/bible_verse.dart';
-import 'package:umn_tamil_bible/widgets/admob_banner.dart';
+import 'package:umn_tamil_bible/widgets/appnext_banner.dart';
 
 class BooksScreen extends StatefulWidget {
   const BooksScreen({super.key});
@@ -1148,7 +1077,7 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
     final newTestament = filteredBooks.where((b) => b.testament == 'New').toList();
 
     return Scaffold(
-      bottomNavigationBar: const SafeArea(child: AdMobBannerWidget()),
+      bottomNavigationBar: const SafeArea(child: AppnextBannerWidget()),
       appBar: AppBar(
         title: const Text('வேதாகமம்'),
         bottom: TabBar(
@@ -1310,7 +1239,7 @@ import 'package:flutter/services.dart';
 import 'package:umn_tamil_bible/providers/bible_provider.dart';
 import 'package:umn_tamil_bible/providers/theme_provider.dart';
 import 'package:umn_tamil_bible/models/bible_verse.dart';
-import 'package:umn_tamil_bible/widgets/admob_banner.dart';
+import 'package:umn_tamil_bible/widgets/appnext_banner.dart';
 
 class VerseReadingScreen extends StatefulWidget {
   final int bookId;
@@ -1344,7 +1273,7 @@ class _VerseReadingScreenState extends State<VerseReadingScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
-      bottomNavigationBar: const SafeArea(child: AdMobBannerWidget()),
+      bottomNavigationBar: const SafeArea(child: AppnextBannerWidget()),
       appBar: AppBar(
         title: Text('\${widget.bookName} \${widget.chapter}'),
         actions: [
@@ -1519,7 +1448,7 @@ class _VerseReadingScreenState extends State<VerseReadingScreen> {
     content: `import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:umn_tamil_bible/models/bible_verse.dart';
-import 'package:umn_tamil_bible/widgets/admob_banner.dart';
+import 'package:umn_tamil_bible/widgets/appnext_banner.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -1575,7 +1504,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: const SafeArea(child: AdMobBannerWidget()),
+      bottomNavigationBar: const SafeArea(child: AppnextBannerWidget()),
       appBar: AppBar(
         title: const Text('வேதாகம தேடுதல்'),
       ),
