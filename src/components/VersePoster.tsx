@@ -583,27 +583,16 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
         return;
       }
 
-      // Try modern Blob download first
+      // Generate Data URL immediately for safe preview/fallback
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      setSavedImageDataUrl(dataUrl);
+
+      // Try modern Blob download
       if (canvas.toBlob) {
         canvas.toBlob((blob) => {
           try {
             if (!blob) {
-              // Fallback to dataURL
-              const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-              setSavedImageDataUrl(dataUrl);
-              const link = document.createElement('a');
-              link.download = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
-              link.href = dataUrl;
-              try {
-                document.body.appendChild(link);
-                link.click();
-                setTimeout(() => {
-                  try { document.body.removeChild(link); } catch {}
-                }, 500);
-                showToast('பட அட்டை பதிவிறக்கப்பட்டது! 🎉');
-              } catch {
-                openSaveShareModal();
-              }
+              openSaveShareModal();
               setIsDownloading(false);
               return;
             }
@@ -624,7 +613,8 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
                 } catch {}
               }, 1000);
               showToast('பட அட்டை பதிவிறக்கப்பட்டது! 🎉');
-            } catch {
+            } catch (clickErr) {
+              console.warn('Link click failed in WebView, opening modal:', clickErr);
               openSaveShareModal();
             }
             setIsDownloading(false);
@@ -635,27 +625,13 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
           }
         }, 'image/jpeg', 0.95);
       } else {
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-        setSavedImageDataUrl(dataUrl);
-        const link = document.createElement('a');
-        link.download = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
-        link.href = dataUrl;
-        try {
-          document.body.appendChild(link);
-          link.click();
-          setTimeout(() => {
-            try { document.body.removeChild(link); } catch {}
-          }, 500);
-          showToast('பட அட்டை பதிவிறக்கப்பட்டது! 🎉');
-        } catch {
-          openSaveShareModal();
-        }
+        openSaveShareModal();
         setIsDownloading(false);
       }
     } catch (e) {
       console.error('Download error:', e);
       openSaveShareModal();
-      showToast('படத்தைச் சேமிக்க மேலே உள்ள முன்னோட்டத்தைப் பயன்படுத்தவும்.');
+      showToast('படத்தைச் சேமிக்க முன்னோட்டத்தைப் பயன்படுத்தவும்.');
       setIsDownloading(false);
     }
   };
@@ -669,6 +645,9 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
     }
 
     try {
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      setSavedImageDataUrl(dataUrl);
+
       if (canvas.toBlob) {
         canvas.toBlob(async (blob) => {
           try {
@@ -700,8 +679,9 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
               }
             }
 
-            // 2. If file sharing is not supported by WebView, open Save & Share Modal
+            // 2. If file sharing is not supported by WebView, open Save & Share Modal with image ready
             openSaveShareModal();
+            showToast('படத்தை வாட்ஸ்அப்பில் பகிர கீழே உள்ள வழியைப் பயன்படுத்தவும்.');
           } catch (shareInnerErr) {
             console.log('Share inner error:', shareInnerErr);
             openSaveShareModal();
@@ -722,7 +702,11 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
 
   const handleWhatsAppShare = async () => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
+
     const shareText = `📖 *${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}*\n\n"${verseText}"\n\n✨ *UMN Tamil Bible App* ✨`;
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    setSavedImageDataUrl(dataUrl);
 
     // Step 1: Copy verse caption to clipboard immediately
     try {
@@ -730,7 +714,7 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
     } catch {}
 
     // Step 2: Try Web Share API with image file first so WhatsApp receives the IMAGE
-    if (canvas && canvas.toBlob) {
+    if (canvas.toBlob) {
       canvas.toBlob(async (blob) => {
         if (blob) {
           const fileName = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
@@ -748,26 +732,25 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
               if (err.name === 'AbortError') return;
             }
           }
+
+          // Try copying image to clipboard for easy WhatsApp paste
+          try {
+            // @ts-ignore
+            if (navigator.clipboard && window.ClipboardItem) {
+              // @ts-ignore
+              await navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': blob })
+              ]);
+            }
+          } catch {}
         }
 
-        // If direct file share unavailable, open modal with image preview and copy guidance
-        showToast('வசனம் நகலெடுக்கப்பட்டது! படத்தைச் சேமித்து வாட்ஸ்அப்பில் பகிரவும்.');
-        const textToShare = encodeURIComponent(shareText);
-        const whatsappUrl = `whatsapp://send?text=${textToShare}`;
-        try {
-          window.location.href = whatsappUrl;
-        } catch {
-          window.open(`https://api.whatsapp.com/send?text=${textToShare}`, '_blank');
-        }
+        // If direct file share unavailable in WebView, open modal with image preview
+        openSaveShareModal();
+        showToast('படம் மற்றும் வசனம் தயார்! படத்தைச் சேமித்து வாட்ஸ்அப்பில் பகிரவும்.');
       }, 'image/jpeg', 0.95);
     } else {
-      const textToShare = encodeURIComponent(shareText);
-      const whatsappUrl = `whatsapp://send?text=${textToShare}`;
-      try {
-        window.location.href = whatsappUrl;
-      } catch {
-        window.open(`https://api.whatsapp.com/send?text=${textToShare}`, '_blank');
-      }
+      openSaveShareModal();
     }
   };
 
