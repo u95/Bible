@@ -578,34 +578,71 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
     setIsDownloading(true);
     try {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas) {
+        setIsDownloading(false);
+        return;
+      }
 
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          showToast('படத்தைப் பதிவிறக்குவதில் பிழை ஏற்பட்டது.');
-          setIsDownloading(false);
-          return;
-        }
+      // Try modern Blob download first
+      if (canvas.toBlob) {
+        canvas.toBlob((blob) => {
+          try {
+            if (!blob) {
+              // Fallback to dataURL
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+              const link = document.createElement('a');
+              link.download = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
+              link.href = dataUrl;
+              document.body.appendChild(link);
+              link.click();
+              setTimeout(() => {
+                try { document.body.removeChild(link); } catch {}
+              }, 500);
+              showToast('பட அட்டை பதிவிறக்கப்பட்டது! 🎉');
+              setIsDownloading(false);
+              return;
+            }
 
-        const fileName = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
-        const blobUrl = URL.createObjectURL(blob);
+            const fileName = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = blobUrl;
+            document.body.appendChild(link);
+            link.click();
+            
+            setTimeout(() => {
+              try {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+              } catch {}
+            }, 1000);
+
+            showToast('பட அட்டை வெற்றிகரமாகப் பதிவிறக்கப்பட்டது! 🎉');
+            setIsDownloading(false);
+          } catch (blobErr) {
+            console.warn('Blob download fallback:', blobErr);
+            openSaveShareModal();
+            setIsDownloading(false);
+          }
+        }, 'image/jpeg', 0.95);
+      } else {
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
         const link = document.createElement('a');
-        link.download = fileName;
-        link.href = blobUrl;
+        link.download = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
+        link.href = dataUrl;
         document.body.appendChild(link);
         link.click();
-        
         setTimeout(() => {
-          document.body.removeChild(link);
-          URL.revokeObjectURL(blobUrl);
-        }, 1000);
-
-        showToast('பட அட்டை வெற்றிகரமாகப் பதிவிறக்கப்பட்டது! 🎉');
+          try { document.body.removeChild(link); } catch {}
+        }, 500);
+        showToast('பட அட்டை பதிவிறக்கப்பட்டது! 🎉');
         setIsDownloading(false);
-      }, 'image/jpeg', 0.95);
+      }
     } catch (e) {
-      console.error(e);
-      showToast('படத்தைப் பதிவிறக்குவதில் பிழை ஏற்பட்டது.');
+      console.error('Download error:', e);
+      openSaveShareModal();
+      showToast('படத்தைச் சேமிக்க முன்னோட்டத்தைப் பயன்படுத்தவும்.');
       setIsDownloading(false);
     }
   };
@@ -619,46 +656,62 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
     }
 
     try {
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          setIsSharing(false);
-          return;
-        }
-
-        const fileName = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
-        const file = new File([blob], fileName, { type: 'image/jpeg' });
-
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      if (canvas.toBlob) {
+        canvas.toBlob(async (blob) => {
           try {
-            await navigator.share({
-              title: `${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum} - UMN Tamil Bible`,
-              text: `"${verseText}" - ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`,
-              files: [file]
-            });
-            showToast('வெற்றிகரமாகப் பகிரப்பட்டது!');
-          } catch (err) {
-            console.log('Share canceled or error:', err);
+            if (!blob) {
+              setIsSharing(false);
+              openSaveShareModal();
+              return;
+            }
+
+            const fileName = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
+            const file = new File([blob], fileName, { type: 'image/jpeg' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              try {
+                await navigator.share({
+                  title: `${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum} - UMN Tamil Bible`,
+                  text: `"${verseText}" - ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`,
+                  files: [file]
+                });
+                showToast('வெற்றிகரமாகப் பகிரப்பட்டது!');
+              } catch (err: any) {
+                if (err.name !== 'AbortError') {
+                  openSaveShareModal();
+                }
+              }
+            } else if (navigator.share) {
+              try {
+                await navigator.share({
+                  title: `${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`,
+                  text: `"${verseText}" - ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum} | UMN Tamil Bible`,
+                  url: 'https://u95.github.io/Umn-Bible-Hub-/'
+                });
+                showToast('பகிரப்பட்டது!');
+              } catch (err: any) {
+                if (err.name !== 'AbortError') {
+                  openSaveShareModal();
+                }
+              }
+            } else {
+              openSaveShareModal();
+            }
+          } catch (shareInnerErr) {
+            console.log('Share inner error:', shareInnerErr);
+            openSaveShareModal();
+          } finally {
+            setIsSharing(false);
           }
-        } else if (navigator.share) {
-          try {
-            await navigator.share({
-              title: `${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`,
-              text: `"${verseText}" - ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum} | UMN Tamil Bible`,
-              url: 'https://u95.github.io/Umn-Bible-Hub-/'
-            });
-            showToast('பகிரப்பட்டது!');
-          } catch (err) {
-            console.log('Share canceled:', err);
-          }
-        } else {
-          handleDirectDownload();
-        }
+        }, 'image/jpeg', 0.95);
+      } else {
+        openSaveShareModal();
         setIsSharing(false);
-      }, 'image/jpeg', 0.95);
+      }
     } catch (e) {
       console.log('Share error:', e);
       setIsSharing(false);
-      handleDirectDownload();
+      openSaveShareModal();
     }
   };
 
