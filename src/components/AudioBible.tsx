@@ -80,6 +80,7 @@ export default function AudioBible({
 
   // Speech synthesis reference for Offline Device TTS
   const synthRef = useRef<SpeechSynthesis | null>(null);
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const mockTimerRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   
@@ -343,6 +344,7 @@ export default function AudioBible({
     try {
       synthRef.current.cancel();
       const utterance = new SpeechSynthesisUtterance(activeVerse.text);
+      currentUtteranceRef.current = utterance;
       utterance.lang = 'ta-IN';
       const tamilVoice = getStrictTamilVoice();
       if (tamilVoice) {
@@ -357,6 +359,7 @@ export default function AudioBible({
       };
 
       utterance.onend = () => {
+        currentUtteranceRef.current = null;
         const nextIdx = index + 1;
         if (nextIdx < verses.length) {
           setCurrentVerseIndex(nextIdx);
@@ -373,6 +376,7 @@ export default function AudioBible({
 
       utterance.onerror = (e) => {
         console.warn("Speech error, switching to auto-reader:", e);
+        currentUtteranceRef.current = null;
         setAudioEngine('simulation');
         setIsPlaying(true);
       };
@@ -490,6 +494,7 @@ export default function AudioBible({
         // ignore
       }
     }
+    currentUtteranceRef.current = null;
 
     if (mockTimerRef.current) {
       clearTimeout(mockTimerRef.current);
