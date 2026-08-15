@@ -996,24 +996,36 @@ export default function BibleEmulator() {
         {/* SCREEN: VERSE READING */}
         {currentScreen === "read" && selectedBook && (
           <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 animate-fadeIn">
-            {/* Simple Next/Prev chapter controls */}
-            <div className="flex justify-between items-center mb-1">
+            {/* Simple Next/Prev chapter controls & Audio Button */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={selectedChapter <= 1}
+                  onClick={() => setSelectedChapter(prev => prev - 1)}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-bold rounded-xl cursor-pointer border ${selectedChapter <= 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-zinc-800'} ${isDarkMode ? 'border-zinc-800' : 'border-slate-200'}`}
+                >
+                  ◀ முந்தையது
+                </button>
+                <span className="text-xs sm:text-sm font-black px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300">
+                  {selectedBook.tamilName} {selectedChapter}:{verses.length > 0 ? `1-${verses.length}` : ''}
+                </span>
+                <button
+                  disabled={selectedChapter >= selectedBook.chapters}
+                  onClick={() => setSelectedChapter(prev => prev + 1)}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-bold rounded-xl cursor-pointer border ${selectedChapter >= selectedBook.chapters ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-zinc-800'} ${isDarkMode ? 'border-zinc-800' : 'border-slate-200'}`}
+                >
+                  அடுத்தது ▶
+                </button>
+              </div>
+
+              {/* Direct Audio Bible Button */}
               <button
-                disabled={selectedChapter <= 1}
-                onClick={() => setSelectedChapter(prev => prev - 1)}
-                className={`px-3 py-1.5 text-xs sm:text-sm font-bold rounded-lg cursor-pointer border ${selectedChapter <= 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-zinc-800'} ${isDarkMode ? 'border-zinc-800' : 'border-slate-200'}`}
+                onClick={() => navigateTo("audio")}
+                className="px-3.5 py-1.5 text-xs sm:text-sm font-extrabold rounded-xl cursor-pointer bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white flex items-center gap-1.5 shadow-sm transition-all hover:scale-105"
+                title="இந்த அதிகாரத்தை ஆடியோவில் கேட்கவும்"
               >
-                முந்தைய அதிகாரம்
-              </button>
-              <span className="text-xs sm:text-sm font-bold text-slate-500">
-                {selectedChapter} / {selectedBook.chapters}
-              </span>
-              <button
-                disabled={selectedChapter >= selectedBook.chapters}
-                onClick={() => setSelectedChapter(prev => prev + 1)}
-                className={`px-3 py-1.5 text-xs sm:text-sm font-bold rounded-lg cursor-pointer border ${selectedChapter >= selectedBook.chapters ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-zinc-800'} ${isDarkMode ? 'border-zinc-800' : 'border-slate-200'}`}
-              >
-                அடுத்த அதிகாரம்
+                <Volume2 size={15} />
+                <span>🎧 ஆடியோ கேட்க</span>
               </button>
             </div>
 
@@ -2074,7 +2086,12 @@ export default function BibleEmulator() {
 
         {currentScreen === "audio" && (
           <div className="w-full animate-fadeIn">
-            <AudioBible isDarkMode={isDarkMode} onBack={navigateBack} />
+            <AudioBible 
+              isDarkMode={isDarkMode} 
+              onBack={navigateBack} 
+              initialBook={selectedBook || bibleBooks[0]}
+              initialChapter={selectedChapter || 1}
+            />
           </div>
         )}
 

@@ -27,12 +27,22 @@ import {
 } from 'lucide-react';
 import { bibleBooks, getVersesForChapter, BibleBook, BibleVerse } from '../data/bibleData';
 
-type AudioEngineMode = 'studio' | 'device' | 'simulation';
+type AudioEngineMode = 'device' | 'studio' | 'simulation';
 
-export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean; onBack: () => void }) {
+export default function AudioBible({ 
+  isDarkMode, 
+  onBack,
+  initialBook,
+  initialChapter
+}: { 
+  isDarkMode: boolean; 
+  onBack: () => void;
+  initialBook?: BibleBook;
+  initialChapter?: number;
+}) {
   // Book & Chapter Selectors
-  const [selectedBook, setSelectedBook] = useState<BibleBook>(bibleBooks[0]); // Default to Genesis (Book 1)
-  const [selectedChapter, setSelectedChapter] = useState<number>(1);
+  const [selectedBook, setSelectedBook] = useState<BibleBook>(initialBook || bibleBooks[0]);
+  const [selectedChapter, setSelectedChapter] = useState<number>(initialChapter || 1);
   const [verses, setVerses] = useState<BibleVerse[]>([]);
   
   // Audio playback state
@@ -48,8 +58,8 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
 
-  // Audio Engine: 'studio' (Real Human Tamil Narration - 100% reliable) or 'device' (Local TTS) or 'simulation' (Auto-Reader)
-  const [audioEngine, setAudioEngine] = useState<AudioEngineMode>('studio');
+  // Audio Engine: 'device' (Local TTS - 100% reliable) or 'studio' (Stream) or 'simulation' (Auto-Reader)
+  const [audioEngine, setAudioEngine] = useState<AudioEngineMode>('device');
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [hasTamilDeviceVoice, setHasTamilDeviceVoice] = useState<boolean>(false);
   const [isTestingVoice, setIsTestingVoice] = useState<boolean>(false);
@@ -549,14 +559,13 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
       return;
     }
 
-    // STUDIO AUDIO MODE (Default & 100% Reliable Human Studio Voice)
+    // STUDIO AUDIO MODE (Streaming)
     if (!audioElementRef.current) {
       prepareStudioAudio(selectedBook.id, selectedChapter);
     }
 
     const audio = audioElementRef.current;
     if (audio) {
-      // If user clicked a specific verse, seek to approximate position
       if (verses.length > 0 && audio.duration) {
         const targetTime = (index / verses.length) * audio.duration;
         audio.currentTime = targetTime;
@@ -568,11 +577,14 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
         setIsLoadingAudio(false);
         startVisualizerAnimation();
       }).catch(err => {
-        console.warn("Audio play error:", err);
+        console.warn("Studio play failed, auto-switching to Device TTS voice:", err);
         setIsLoadingAudio(false);
-        // If play failed, toggle device TTS as fallback
+        setAudioEngine('device');
         playDeviceTTSVerse(index);
       });
+    } else {
+      setAudioEngine('device');
+      playDeviceTTSVerse(index);
     }
   };
 
@@ -590,10 +602,13 @@ export default function AudioBible({ isDarkMode, onBack }: { isDarkMode: boolean
             setIsLoadingAudio(false);
             startVisualizerAnimation();
           }).catch(err => {
-            console.warn("Studio play failed:", err);
+            console.warn("Studio play failed, falling back to local TTS:", err);
             setIsLoadingAudio(false);
-            playActiveVerse(currentVerseIndex);
+            setAudioEngine('device');
+            playDeviceTTSVerse(currentVerseIndex);
           });
+        } else {
+          playActiveVerse(currentVerseIndex);
         }
       } else {
         setIsPlaying(true);
