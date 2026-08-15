@@ -590,15 +590,20 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
             if (!blob) {
               // Fallback to dataURL
               const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+              setSavedImageDataUrl(dataUrl);
               const link = document.createElement('a');
               link.download = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
               link.href = dataUrl;
-              document.body.appendChild(link);
-              link.click();
-              setTimeout(() => {
-                try { document.body.removeChild(link); } catch {}
-              }, 500);
-              showToast('பட அட்டை பதிவிறக்கப்பட்டது! 🎉');
+              try {
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(() => {
+                  try { document.body.removeChild(link); } catch {}
+                }, 500);
+                showToast('பட அட்டை பதிவிறக்கப்பட்டது! 🎉');
+              } catch {
+                openSaveShareModal();
+              }
               setIsDownloading(false);
               return;
             }
@@ -608,17 +613,20 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
             const link = document.createElement('a');
             link.download = fileName;
             link.href = blobUrl;
-            document.body.appendChild(link);
-            link.click();
             
-            setTimeout(() => {
-              try {
-                document.body.removeChild(link);
-                URL.revokeObjectURL(blobUrl);
-              } catch {}
-            }, 1000);
-
-            showToast('பட அட்டை வெற்றிகரமாகப் பதிவிறக்கப்பட்டது! 🎉');
+            try {
+              document.body.appendChild(link);
+              link.click();
+              setTimeout(() => {
+                try {
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(blobUrl);
+                } catch {}
+              }, 1000);
+              showToast('பட அட்டை பதிவிறக்கப்பட்டது! 🎉');
+            } catch {
+              openSaveShareModal();
+            }
             setIsDownloading(false);
           } catch (blobErr) {
             console.warn('Blob download fallback:', blobErr);
@@ -628,21 +636,26 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
         }, 'image/jpeg', 0.95);
       } else {
         const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        setSavedImageDataUrl(dataUrl);
         const link = document.createElement('a');
         link.download = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
         link.href = dataUrl;
-        document.body.appendChild(link);
-        link.click();
-        setTimeout(() => {
-          try { document.body.removeChild(link); } catch {}
-        }, 500);
-        showToast('பட அட்டை பதிவிறக்கப்பட்டது! 🎉');
+        try {
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            try { document.body.removeChild(link); } catch {}
+          }, 500);
+          showToast('பட அட்டை பதிவிறக்கப்பட்டது! 🎉');
+        } catch {
+          openSaveShareModal();
+        }
         setIsDownloading(false);
       }
     } catch (e) {
       console.error('Download error:', e);
       openSaveShareModal();
-      showToast('படத்தைச் சேமிக்க முன்னோட்டத்தைப் பயன்படுத்தவும்.');
+      showToast('படத்தைச் சேமிக்க மேலே உள்ள முன்னோட்டத்தைப் பயன்படுத்தவும்.');
       setIsDownloading(false);
     }
   };
@@ -668,6 +681,7 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
             const fileName = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
             const file = new File([blob], fileName, { type: 'image/jpeg' });
 
+            // 1. Try sharing IMAGE FILE directly (Native Android / iOS Share Sheet with WhatsApp/Instagram)
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
               try {
                 await navigator.share({
@@ -675,28 +689,19 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
                   text: `"${verseText}" - ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`,
                   files: [file]
                 });
-                showToast('வெற்றிகரமாகப் பகிரப்பட்டது!');
+                showToast('படம் வெற்றிகரமாகப் பகிரப்பட்டது! 🎉');
+                setIsSharing(false);
+                return;
               } catch (err: any) {
-                if (err.name !== 'AbortError') {
-                  openSaveShareModal();
+                if (err.name === 'AbortError') {
+                  setIsSharing(false);
+                  return;
                 }
               }
-            } else if (navigator.share) {
-              try {
-                await navigator.share({
-                  title: `${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`,
-                  text: `"${verseText}" - ${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum} | UMN Tamil Bible`,
-                  url: 'https://u95.github.io/Umn-Bible-Hub-/'
-                });
-                showToast('பகிரப்பட்டது!');
-              } catch (err: any) {
-                if (err.name !== 'AbortError') {
-                  openSaveShareModal();
-                }
-              }
-            } else {
-              openSaveShareModal();
             }
+
+            // 2. If file sharing is not supported by WebView, open Save & Share Modal
+            openSaveShareModal();
           } catch (shareInnerErr) {
             console.log('Share inner error:', shareInnerErr);
             openSaveShareModal();
@@ -715,16 +720,54 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
     }
   };
 
-  const handleWhatsAppShare = () => {
-    const textToShare = encodeURIComponent(
-      `📖 *${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}*\n\n"${verseText}"\n\n✨ *UMN Tamil Bible App* ✨`
-    );
-    const whatsappUrl = `whatsapp://send?text=${textToShare}`;
-    
+  const handleWhatsAppShare = async () => {
+    const canvas = canvasRef.current;
+    const shareText = `📖 *${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}*\n\n"${verseText}"\n\n✨ *UMN Tamil Bible App* ✨`;
+
+    // Step 1: Copy verse caption to clipboard immediately
     try {
-      window.location.href = whatsappUrl;
-    } catch {
-      window.open(`https://api.whatsapp.com/send?text=${textToShare}`, '_blank');
+      await navigator.clipboard.writeText(shareText);
+    } catch {}
+
+    // Step 2: Try Web Share API with image file first so WhatsApp receives the IMAGE
+    if (canvas && canvas.toBlob) {
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          const fileName = `UMN_BibleStatus_${currentBook.englishName}_${selectedChapter}_${selectedVerseNum}.jpg`;
+          const file = new File([blob], fileName, { type: 'image/jpeg' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                title: `${currentBook.tamilName} ${selectedChapter}:${selectedVerseNum}`,
+                text: shareText,
+                files: [file]
+              });
+              showToast('வாட்ஸ்அப்பில் படத்துடன் பகிரப்பட்டது! 🎉');
+              return;
+            } catch (err: any) {
+              if (err.name === 'AbortError') return;
+            }
+          }
+        }
+
+        // If direct file share unavailable, open modal with image preview and copy guidance
+        showToast('வசனம் நகலெடுக்கப்பட்டது! படத்தைச் சேமித்து வாட்ஸ்அப்பில் பகிரவும்.');
+        const textToShare = encodeURIComponent(shareText);
+        const whatsappUrl = `whatsapp://send?text=${textToShare}`;
+        try {
+          window.location.href = whatsappUrl;
+        } catch {
+          window.open(`https://api.whatsapp.com/send?text=${textToShare}`, '_blank');
+        }
+      }, 'image/jpeg', 0.95);
+    } else {
+      const textToShare = encodeURIComponent(shareText);
+      const whatsappUrl = `whatsapp://send?text=${textToShare}`;
+      try {
+        window.location.href = whatsappUrl;
+      } catch {
+        window.open(`https://api.whatsapp.com/send?text=${textToShare}`, '_blank');
+      }
     }
   };
 
@@ -742,13 +785,21 @@ export default function VersePoster({ initialVerse, onBack, isDarkMode }: VerseP
     if (!canvas) return;
     try {
       canvas.toBlob(async (blob) => {
-        if (!blob) return;
+        if (!blob) {
+          openSaveShareModal();
+          return;
+        }
         try {
           // @ts-ignore
-          await navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': blob })
-          ]);
-          showToast('படம் கிளிப்போர்டில் நகலெடுக்கப்பட்டது! 📋');
+          if (navigator.clipboard && window.ClipboardItem) {
+            // @ts-ignore
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            showToast('படம் கிளிப்போர்டில் நகலெடுக்கப்பட்டது! 📋');
+          } else {
+            openSaveShareModal();
+          }
         } catch {
           openSaveShareModal();
         }
